@@ -3541,9 +3541,6 @@
             size = 0.6
             )
               
-        # Remove table
-        file.remove("Multivariate_table.png")
-        
         # Show plot
         print(p_with_table)
       
@@ -3555,6 +3552,9 @@
                height = 12, 
                units = "cm", 
                dpi = 300)
+        
+        # Remove table
+        file.remove("Multivariate_table.png")
     
   
 
