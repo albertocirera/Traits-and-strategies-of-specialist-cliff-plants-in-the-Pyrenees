@@ -7,7 +7,7 @@
   # This is the script for the study: "Specialist plants on vertical calcareous rock
   # formations in the Pyrenees share common traits and strategies." All the script
   # is detailed and explained, and should work as far as you have downloaded the folder
-  # from github "albertocirera/github" and you have access to internet. In fact, it
+  # from github "https://github.com/albertocirera/Traits-and-strategies-of-specialist-cliff-plants-in-the-Pyrenees" and you have access to internet. In fact, it
   # should work just with the raw data csv, but you need some other files for the map
   # part. Any doubt dont hesitate to ask to cireralberto@gmail.com
 
