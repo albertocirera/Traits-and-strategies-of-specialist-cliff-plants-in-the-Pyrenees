@@ -138,24 +138,20 @@
       summary (Datos)
       
       # switch to factor
-      Datos$Codigo_muestra <- factor(Datos$Codigo_muestra)
-      Datos$Codigo_individuo <- factor(Datos$Codigo_individuo)
-      Datos$Especie <- factor(Datos$Especie)
-      Datos$Familia <- factor(Datos$Familia)
+      Datos$Cod_sample <- factor(Datos$Cod_sample)
+      Datos$Cod_ind <- factor(Datos$Cod_ind)
+      Datos$Species <- factor(Datos$Species)
+      Datos$Family <- factor(Datos$Family)
       Datos$Type <- factor(Datos$Type)
       Datos$Pairs <- factor(Datos$Pairs)
-      Datos$Fuente <- factor(Datos$Fuente)
-      Datos$Localidad <- factor(Datos$Localidad)
-      Datos$Muestra_general <- factor(Datos$Muestra_general)
-      Datos$Organo <- factor(Datos$Organo)
-      Datos$Muestreo <- factor(Datos$Muestreo)
-      
+      Datos$Locality <- factor(Datos$Locality)
+      Datos$Organ <- factor(Datos$Organ)
+
       # switch date variable so R can read it correctly
-      Datos$Fecha_recoleccion <- dmy(Datos$Fecha_recoleccion)
+      Datos$Sample_date <- dmy(Datos$Sample_date)
       
       # another summary to check if the changes worked correctly
       summary (Datos)
-      
       
       
       
@@ -188,13 +184,13 @@
         Datos_sf$Elevation <- elev_data$elevation
         
         # Add elevation to original data frame
-        Datos <- merge(Datos, Datos_sf[, c("Codigo_muestra", "Elevation")], by = "Codigo_muestra", all.x = TRUE)
+        Datos <- merge(Datos, Datos_sf[, c("Cod_sample", "Elevation")], by = "Cod_sample", all.x = TRUE)
         
         # Delete geometry
         Datos$geometry <- NULL
         
         # Reorder Datos
-        Datos <- Datos[, c(colnames(Datos)[1:8], "Elevation", colnames(Datos)[9:44] # Remaining columns
+        Datos <- Datos[, c(colnames(Datos)[1:7], "Elevation", colnames(Datos)[8:35] # Remaining columns
         )]
         
       
@@ -211,37 +207,34 @@
         # the dataframe, delete species that we didnt end up sampling, or calculate
         # some secondary traits as flower area or relative flower area.
       
-        # First we get the morfological data only  
-        Datos_m <- Datos[Datos$Muestreo == "Morfologia", ]
-    
-        # Filter the columns that are not completly NA
-        Datos_m <- Datos_m %>%
+        # Filter the columns that are not completly NA (in case there are)
+        Datos_m <- Datos %>%
         select_if(~ !all(is.na(.)))
       
         # Calculate the mean of leaf area per species
         medias <- Datos_m %>%
-          group_by(Especie) %>%
+          group_by(Species) %>%
           summarize(media_leaf_area = mean(Leaf_area, na.rm = TRUE))
       
-        # Identify species where leaf area equals to zero
-        especies_a_eliminar <- medias %>%
+        # Identify species where leaf area equals to zero 
+        Speciess_a_eliminar <- medias %>%
           filter(is.na(media_leaf_area)) %>%
-          pull(Especie)
+          pull(Species)
       
         # Identify pairs of that species
         generos_a_eliminar <- Datos_m %>%
-          filter(Especie %in% especies_a_eliminar) %>%
+          filter(Species %in% Speciess_a_eliminar) %>%
           pull(Pairs) %>%
           unique()
         
         # Identify all the species from those pairs
-        especies_a_eliminar_todas <- Datos_m %>%
+        Speciess_a_eliminar_todas <- Datos_m %>%
           filter(Pairs %in% generos_a_eliminar) %>%
-          pull(Especie) %>%
+          pull(Species) %>%
           unique()
         
         # Convert it to character
-        especies_a_eliminar_todas <- as.character(especies_a_eliminar_todas)
+        Speciess_a_eliminar_todas <- as.character(Speciess_a_eliminar_todas)
         
         # Filtrate original dataframe to eliminate all the species from that pairs
         Datos_m <- Datos_m %>%
@@ -250,11 +243,11 @@
         # Calculate flower area
         Datos_m$Flower_area <- NA
         for (i in 1:nrow(Datos_m)) {
-          if (Datos_m$Organo[i] == "Flor") {
-            if (!is.na(Datos_m$Diametro_flor[i])) {
-              Datos_m$Flower_area[i] <- pi * (Datos_m$Diametro_flor[i]/2)^2
-            } else if (!is.na(Datos_m$Eje_max_flor[i])) {
-              Datos_m$Flower_area[i] <- Datos_m$Eje_max_flor[i] * Datos_m$Eje_min_flor[i]
+          if (Datos_m$Organ[i] == "Flower") {
+            if (!is.na(Datos_m$Flower_diameter[i])) {
+              Datos_m$Flower_area[i] <- pi * (Datos_m$Flower_diameter[i]/2)^2
+            } else if (!is.na(Datos_m$Flower_major_axis[i])) {
+              Datos_m$Flower_area[i] <- Datos_m$Flower_major_axis[i] * Datos_m$Flower_minor_axis[i]
             }
           }
         }
@@ -262,17 +255,17 @@
         # Order the species for pairs and type for future plots
         Datos_m <- Datos_m %>%
           arrange(Pairs, Type) %>%
-          mutate(Especie = factor(Especie, levels = unique(Especie)))
+          mutate(Species = factor(Species, levels = unique(Species)))
         
         # Summarize per individual
         Datos_m_individ <- Datos_m %>%
-          group_by(Familia, Type, Pairs, Localidad, Especie, Codigo_individuo) %>%
-          summarise(across(c(3, 12:40), mean, na.rm = TRUE))
+          group_by(Family, Type, Pairs, Locality, Species, Cod_ind) %>%
+          summarise(across(c(2, 9:31), mean, na.rm = TRUE))
         
         # Calculate relative flower area per individual
         Datos_m_individ$Relative_flower_area <- NA
         for (i in 1:nrow(Datos_m_individ)) {
-          Datos_m_individ$Relative_flower_area[i] <- (Datos_m_individ$Flower_area[i]/100) / Datos_m_individ$Alt_max_veg[i]
+          Datos_m_individ$Relative_flower_area[i] <- (Datos_m_individ$Flower_area[i]/100) / Datos_m_individ$Plant_max_veg_height[i]
         }     
           
         
@@ -285,7 +278,7 @@
         
   # ######### ------------------------------- #########
   # ######### ------------------------------- #########
-  # #########       EXPLORATORY ANALYSIS      ######### 
+  # #########       EXPLORATORY ANALYSIS      #########
   # ######### ------------------------------- #########
   # ######### ------------------------------- #########
   # 
@@ -294,34 +287,34 @@
   #   # it is not strictly needed for the analysis, so it is not "active".
   #   # If you want R to read it you have to select all the rows of Exploratory Analysis
   #   # and press "ctr + alt + C" to delete all "#".
-  #     
-  #  
-  #     
-  #       
-  #       
-  #       
-  #       
-  #     
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #     ######## --------------------- ########
   #     ######## ----- Libraries ----- ########
   #     ######## --------------------- ########
-  #     
+  # 
   #       library(ggpubr)
   #       library(ggplot2)
   # 
-  #     
-  #     
   # 
-  #       
-  #       
-  #       
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #     ######## --------------------- ########
   #     ######## ----- Procedure ----- ########
   #     ######## --------------------- ########
-  #     
+  # 
   #       # First we are going to do some univariates, and then bivariates and more
-  #     
+  # 
   #       # Colours for the graphs
   #       colores_grafico <- c("Generalist" = "#009E73", "Cliff_specialist" = "#E69F00")
   #       coloType <- c("Ramonda" = "#9467bd",
@@ -336,83 +329,83 @@
   #                     "Hypericum" = "yellow",
   #                     "Sarcocapnos" = "#2F4F4F",
   #                     "Dioscorea" = "#F781BF")
-  #       
-  #       # shape 
+  # 
+  #       # shape
   #       formas <- c("Generalist" = 2, "Cliff_specialist" = 19)
-  #       
-  #       
-  #       
-  #       
-  #       
-  #     
-  #       
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #       ####### ------------------------ #######
   #       #######    Univariate analysis   #######
   #       ####### ------------------------ #######
   # 
   #         # This is to see the behaviour and how are distributed our different variables
   # 
-  #       
-  #       
-  #       
-  #       
-  #     
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ----------- ######
-  #         ######   Especie   ######
+  #         ######   Species   ######
   #         ###### ----------- ######
-  #           
+  # 
   #           # First we do the summary
-  #           summary (Datos_m$Especie)
-  #     
+  #           summary (Datos_m$Species)
+  # 
   #           # It is a categorical variable, so we can do a bar graph
-  #           ggplot(Datos_m, aes(x = Especie, fill = Type)) +
+  #           ggplot(Datos_m, aes(x = Species, fill = Type)) +
   #             geom_bar() +
   #             theme_minimal() +
   #             labs(
-  #               title = "Frecuencia de Especies",
-  #               x = "Especie",
+  #               title = "Frecuencia de Speciess",
+  #               x = "Species",
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotar etiquetas para mejor legibilidad
-  #           
-  #           # As for some plants there are not 4 flowers per individual, 
+  # 
+  #           # As for some plants there are not 4 flowers per individual,
   #           # the graph is not homogeneous
-  #     
-  #           
-  #           
-  #           
-  #           
-  #     
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ------------- ######
-  #         ######   Localidad   ######
+  #         ######   Locality   ######
   #         ###### ------------- ######
-  #         
+  # 
   #           # First we do the summary
-  #           summary (Datos_m$Localidad)
-  #           
+  #           summary (Datos_m$Locality)
+  # 
   #           # It is a categorical variable, so we can do a bar graph
-  #           ggplot(Datos_m, aes(x = Localidad)) +
+  #           ggplot(Datos_m, aes(x = Locality)) +
   #             geom_bar() +
   #             theme_minimal() +
   #             labs(
-  #               title = "Localidades de recoleccion",
-  #               x = "Especie",
+  #               title = "Localityes de recoleccion",
+  #               x = "Species",
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotar etiquetas para mejor legibilidad
-  #           
-  #           
-  #           
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ------------- ######
   #         ######   Elevation   ######
   #         ###### ------------- ######
-  #           
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Elevation)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Elevation)) +
   #               geom_histogram(binwidth = 300, fill = "blue", color = "black", alpha = 0.7) +
@@ -423,21 +416,21 @@
   #                 y = "Frecuencia"
   #               ) +
   #               theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
+  # 
   #           # looks like a normal distribution
-  #             
-  #           
-  #           
-  #           
-  #           
-  #             
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ------------- ######
   #         ######   Leaf_area   ######
   #         ###### ------------- ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Leaf_area)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Leaf_area)) +
   #             geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
@@ -448,21 +441,21 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
+  # 
   #           # Lots of small values, and less of bigger
-  #           
-  #           
-  #           
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ---------------- ######
   #         ######   Petiole_area   ######
   #         ###### ---------------- ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Petiole_area)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Petiole_area)) +
   #             geom_histogram(binwidth = 0.1, fill = "blue", color = "black", alpha = 0.7) +
@@ -473,19 +466,19 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #         
-  #           
-  #           
-  #           
-  #           
-  #         
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### -------------------------- ######
   #         ######   Leaf_area_with_petiole   ######
   #         ###### -------------------------- ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Leaf_area_with_petiole)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Leaf_area_with_petiole)) +
   #             geom_histogram(binwidth = 1, fill = "blue", color = "black", alpha = 0.7) +
@@ -496,21 +489,21 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
+  # 
   #           # Lots of small values, and less of bigger
-  #         
-  #           
-  #           
-  #           
-  #           
-  #         
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ------------------ ######
   #         ######   Leaf_thickness   ######
   #         ###### ------------------ ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Leaf_thickness)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Leaf_thickness)) +
   #             geom_histogram(binwidth = 0.1, fill = "blue", color = "black", alpha = 0.7) +
@@ -521,19 +514,19 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #         
-  #         
-  #           
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ------------------------ ######
   #         ######   Petiole_fresh_weight   ######
   #         ###### ------------------------ ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Petiole_fresh_weight)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Petiole_fresh_weight)) +
   #             geom_histogram(binwidth = 0.05, fill = "blue", color = "black", alpha = 0.7) +
@@ -544,21 +537,21 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
+  # 
   #           # Lots of small values, and less of bigger
-  #         
-  #           
-  #           
-  #           
-  #           
-  #         
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ---------------------------------- ######
   #         ######   Leaf_fresh_weight_with_petiole   ######
   #         ###### ---------------------------------- ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Leaf_fresh_weight_with_petiole)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Leaf_fresh_weight_with_petiole)) +
   #             geom_histogram(binwidth = 0.1, fill = "blue", color = "black", alpha = 0.7) +
@@ -569,21 +562,21 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
+  # 
   #           # Lots of small values, and less of bigger
-  #         
-  #         
-  #           
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ------------------- ######
   #         ######   Leaf_dry_weight   ######
   #         ###### ------------------- ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Leaf_dry_weight)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Leaf_dry_weight)) +
   #             geom_histogram(binwidth = 0.01, fill = "blue", color = "black", alpha = 0.7) +
@@ -594,21 +587,21 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
+  # 
   #           # Lots of small values, and less of bigger
-  #           
-  #           
-  #           
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ---------------------- ######
   #         ######   Petiole_dry_weight   ######
   #         ###### ---------------------- ######
-  #           
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Petiole_dry_weight)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Petiole_dry_weight)) +
   #             geom_histogram(binwidth = 0.005, fill = "blue", color = "black", alpha = 0.7) +
@@ -619,21 +612,21 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
+  # 
   #           # Lots of small values, and less of bigger
-  #         
-  #         
-  #           
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### -------------------------------- ######
   #         ######   Leaf_dry_weight_with_petiole   ######
   #         ###### -------------------------------- ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Leaf_dry_weight_with_petiole)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Leaf_dry_weight_with_petiole)) +
   #             geom_histogram(binwidth = 0.01, fill = "blue", color = "black", alpha = 0.7) +
@@ -644,21 +637,21 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
+  # 
   #           # Lots of small values, and less of bigger
-  #         
-  #           
-  #           
-  #           
-  #           
-  #         
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ----------------------- ######
   #         ######   SLA_without_petiole   ######
   #         ###### ----------------------- ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$SLA_without_petiole)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = SLA_without_petiole)) +
   #             geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7) +
@@ -669,19 +662,19 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #         
-  #           
-  #           
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### -------------------- ######
   #         ######   SLA_with_petiole   ######
   #         ###### -------------------- ######
-  #           
+  # 
   #           # First we do the summary
   #           summary (Datos_m$SLA_with_petiole)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = SLA_with_petiole)) +
   #             geom_histogram(binwidth = 10, fill = "blue", color = "black", alpha = 0.7) +
@@ -691,91 +684,66 @@
   #               x = "SLA_with_petiole",
   #               y = "Frecuencia"
   #             ) +
-  #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))  
-  #         
-  #           
-  #           
-  #           
-  #           
-  #           
-  #         ###### ---------------------------------------------------- ######
-  #         ######   Leaf_dry_weight_per_fresh_weight_without_petiole   ######
-  #         ###### ---------------------------------------------------- ######
-  #         
+  #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  #         ###### ------------------------ ######
+  #         ######   LDMC_without_petiole   ######
+  #         ###### ------------------------ ######
+  # 
   #           # First we do the summary
-  #           summary (Datos_m$Leaf_dry_weight_per_fresh_weight_without_petiole)
-  #           
+  #           summary (Datos_m$LDMC_without_petiole)
+  # 
   #           # It is a numerical variable, so we can do a histogram
-  #           ggplot(Datos_m, aes(x = Leaf_dry_weight_per_fresh_weight_without_petiole)) +
+  #           ggplot(Datos_m, aes(x = LDMC_without_petiole)) +
   #             geom_histogram(binwidth = 0.01, fill = "blue", color = "black", alpha = 0.7) +
   #             theme_minimal() +
   #             labs(
-  #               title = "Distribución de Leaf_dry_weight_per_fresh_weight_without_petiole",
-  #               x = "Leaf_dry_weight_per_fresh_weight_without_petiole",
+  #               title = "Distribución de LDMC_without_petiole",
+  #               x = "LDMC_without_petiole",
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #         
-  #           
-  #           
-  #           
-  #           
-  #           
-  #         ###### ------------------------------------------------- ######
-  #         ######   Leaf_dry_weight_per_fresh_weight_with_petiole   ######
-  #         ###### ------------------------------------------------- ######
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  #         ###### --------------------- ######
+  #         ######   LDMC_with_petiole   ######
+  #         ###### --------------------- ######
+  # 
   #           # First we do the summary
-  #           summary (Datos_m$Leaf_dry_weight_per_fresh_weight_with_petiole)
-  #           
+  #           summary (Datos_m$LDMC_with_petiole)
+  # 
   #           # It is a numerical variable, so we can do a histogram
-  #           ggplot(Datos_m, aes(x = Leaf_dry_weight_per_fresh_weight_with_petiole)) +
+  #           ggplot(Datos_m, aes(x = LDMC_with_petiole)) +
   #             geom_histogram(binwidth = 0.01, fill = "blue", color = "black", alpha = 0.7) +
   #             theme_minimal() +
   #             labs(
-  #               title = "Distribución de Leaf_dry_weight_per_fresh_weight_with_petiole",
-  #               x = "Leaf_dry_weight_per_fresh_weight_with_petiole",
+  #               title = "Distribución de LDMC_with_petiole",
+  #               x = "LDMC_with_petiole",
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #          
-  #           
-  #           
-  #           
-  #            
-  #         
-  #         ###### ---------------- ######
-  #         ######   Volumen_flor   ######
-  #         ###### ---------------- ######
-  #         
-  #           # First we do the summary
-  #           summary (Datos_m$Volumen_flor)
-  #           
-  #           # It is a numerical variable, so we can do a histogram
-  #           ggplot(Datos_m, aes(x = Volumen_flor)) +
-  #             geom_histogram(binwidth = 1000, fill = "blue", color = "black", alpha = 0.7) +
-  #             theme_minimal() +
-  #             labs(
-  #               title = "Distribución de Volumen_flor",
-  #               x = "Volumen_flor",
-  #               y = "Frecuencia"
-  #             ) +
-  #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
-  #           # Lots of small values, and less of bigger
-  #           
-  #           
-  #           
-  #           
-  #           
-  #         
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### --------------- ######
   #         ######   Flower_area   ######
   #         ###### --------------- ######
-  #         
+  # 
   #           # First we do the summary
   #           summary (Datos_m$Flower_area)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m, aes(x = Flower_area)) +
   #             geom_histogram(binwidth = 50, fill = "blue", color = "black", alpha = 0.7) +
@@ -786,21 +754,21 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
+  # 
   #           # Lots of small values, and less of bigger
-  #         
-  #           
-  #           
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #         ###### ------------------------ ######
   #         ######   Relative_flower_area   ######
   #         ###### ------------------------ ######
-  #           
+  # 
   #           # First we do the summary
   #           summary (Datos_m_individ$Relative_flower_area)
-  #           
+  # 
   #           # It is a numerical variable, so we can do a histogram
   #           ggplot(Datos_m_individ, aes(x = Relative_flower_area)) +
   #             geom_histogram(binwidth = 0.1, fill = "blue", color = "black", alpha = 0.7) +
@@ -811,85 +779,60 @@
   #               y = "Frecuencia"
   #             ) +
   #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
-  #           # Lots of small values, and less of bigger  
-  #           
-  #           
-  #           
-  #           
-  #           
-  #         
-  #         ###### --------------- ######
-  #         ######   Alt_max_veg   ######
-  #         ###### --------------- ######
-  #         
+  # 
+  #           # Lots of small values, and less of bigger
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  #         ###### ------------------------ ######
+  #         ######   Plant_max_veg_height   ######
+  #         ###### ------------------------ ######
+  # 
   #         # First we do the summary
-  #         summary (Datos_m$Alt_max_veg)
-  #         
+  #         summary (Datos_m$Plant_max_veg_height)
+  # 
   #         # It is a numerical variable, so we can do a histogram
-  #         ggplot(Datos_m, aes(x = Alt_max_veg)) +
+  #         ggplot(Datos_m, aes(x = Plant_max_veg_height)) +
   #           geom_histogram(binwidth = 5, fill = "blue", color = "black", alpha = 0.7) +
   #           theme_minimal() +
   #           labs(
-  #             title = "Distribución de Alt_max_veg",
-  #             x = "Alt_max_veg",
+  #             title = "Distribución de Plant_max_veg_height",
+  #             x = "Plant_max_veg_height",
   #             y = "Frecuencia"
   #           ) +
   #           theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #         
+  # 
   #         # Lots of small values, and less of bigger
-  #         
-  #         
-  #         
-  #         
-  #         
-  #         
-  #         ###### ---------------------- ######
-  #         ######   Volumen_planta_veg   ######
-  #         ###### ---------------------- ######
-  #         
-  #           # First we do the summary
-  #           summary (Datos_m$Volumen_planta_veg)
-  #           
-  #           # It is a numerical variable, so we can do a histogram
-  #           ggplot(Datos_m, aes(x = Volumen_planta_veg)) +
-  #             geom_histogram(binwidth = 1000000, fill = "blue", color = "black", alpha = 0.7) +
-  #             theme_minimal() +
-  #             labs(
-  #               title = "Distribución de Volumen_planta_veg",
-  #               x = "Volumen_planta_veg",
-  #               y = "Frecuencia"
-  #             ) +
-  #             theme(axis.text = element_text(size = 12), axis.title = element_text(size = 14))
-  #           
-  #           # Lots of small values, and less of bigger
-  #         
-  #     
-  #         
-  #           
-  #           
-  #           
-  #             
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #       ####### -------------------------------- #######
   #       #######    Bivariate analysis and more   #######
   #       ####### -------------------------------- #######
-  #       
+  # 
   #         # Now the idea is to see how the different variables change in function
   #         # of the cliff specialist and generalist species. To see that in an exploratory
   #         # way, we can do a graph with all the species filling with the type
-  #         # variable, and do a "global" graph comparing generalist with cliff species. 
+  #         # variable, and do a "global" graph comparing generalist with cliff species.
   # 
-  #           
-  #           
-  #         
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### ------------- ######
   #           ######   Elevation   ######
   #           ###### ------------- ######
-  #           
+  # 
   #           # Graph with all the species
-  #           ggboxplot(Datos_m, x = "Especie", y = "Elevation", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #           ggboxplot(Datos_m, x = "Species", y = "Elevation", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #             theme_bw() +
   #             theme(
   #               panel.grid.major = element_blank(),
@@ -898,7 +841,7 @@
   #               axis.line = element_line(color = "black"),
   #               axis.text.x = element_text (angle = 90),
   #               legend.key = element_rect(fill = "white", color = "black"))
-  #           
+  # 
   #           # Total
   #           ggboxplot(Datos_m, x = "Type", y = "Elevation", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #             theme_bw() +
@@ -909,18 +852,18 @@
   #               axis.line = element_line(color = "black"),
   #               axis.text.x = element_text (angle = 90),
   #               legend.key = element_rect(fill = "white", color = "black"))
-  #           
-  #           
-  #           
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### ------------- ######
   #           ######   Leaf_area   ######
   #           ###### ------------- ######
-  #             
+  # 
   #             # Graph with all the species
-  #             ggplot(Datos_m, aes(x = Especie, y = Leaf_area, fill = Type)) +
+  #             ggplot(Datos_m, aes(x = Species, y = Leaf_area, fill = Type)) +
   #               geom_boxplot(color = "black", alpha = 0.7, width = 0.5) +
   #               scale_fill_manual(values = colores_grafico, labels = c("Generalist" = "Generalist species", "Cliff_specialist" = "Cliff species")) +
   #               theme_bw() +
@@ -940,7 +883,7 @@
   #                 x = "Species",  # Título del eje x
   #                 y = expression(Leaf~area~(cm^2)),  # Título del eje y con cm^2
   #                 title = "Leaf Area by Species")  # Añadir título principal
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Leaf_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -951,18 +894,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
-  #           
-  #           
-  #           
+  # 
+  # 
+  # 
+  # 
   #             ##### -------------------------------------------------- #####
   #             ##### Graphs with just some species for the presentation #####
   #             ##### -------------------------------------------------- #####
-  #             
+  # 
   #               # for the presentation I want...
-  #             
+  # 
   #               # Sarcocapnos
-  #               ggplot(Datos_m[Datos_m$Pairs == "Sarcocapnos", ], aes(x = Especie, y = Leaf_area, fill = Type)) +
+  #               ggplot(Datos_m[Datos_m$Pairs == "Sarcocapnos", ], aes(x = Species, y = Leaf_area, fill = Type)) +
   #                 geom_boxplot(color = "black", alpha = 0.7, width = 0.5) +
   #                 scale_fill_manual(values = colores_grafico, labels = c("Generalist" = "Generalist species", "Cliff_specialist" = "Cliff species")) +
   #                 theme_bw() +
@@ -982,9 +925,9 @@
   #                   x = "Species",  # Título del eje x
   #                   y = expression(Leaf~area~(cm^2)),  # Título del eje y con cm^2
   #                   title = "Leaf Area by Species")  # Añadir título principal
-  #               
+  # 
   #               # Lonicera
-  #               ggplot(Datos_m[Datos_m$Pairs == "Lonicera", ], aes(x = Especie, y = Leaf_area, fill = Type)) +
+  #               ggplot(Datos_m[Datos_m$Pairs == "Lonicera", ], aes(x = Species, y = Leaf_area, fill = Type)) +
   #                 geom_boxplot(color = "black", alpha = 0.7, width = 0.5) +
   #                 scale_fill_manual(values = colores_grafico, labels = c("Generalist" = "Generalist species", "Cliff_specialist" = "Cliff species")) +
   #                 theme_bw() +
@@ -1004,9 +947,9 @@
   #                   x = "Species",  # Título del eje x
   #                   y = expression(Leaf~area~(cm^2)),  # Título del eje y con cm^2
   #                   title = "Leaf Area by Species")  # Añadir título principal
-  #               
+  # 
   #               # Androsace
-  #               ggplot(Datos_m[Datos_m$Pairs == "Androsace", ], aes(x = Especie, y = Leaf_area, fill = Type)) +
+  #               ggplot(Datos_m[Datos_m$Pairs == "Androsace", ], aes(x = Species, y = Leaf_area, fill = Type)) +
   #                 geom_boxplot(color = "black", alpha = 0.7, width = 0.5) +
   #                 scale_fill_manual(values = colores_grafico, labels = c("Generalist" = "Generalist species", "Cliff_specialist" = "Cliff species")) +
   #                 theme_bw() +
@@ -1026,18 +969,18 @@
   #                   x = "Species",  # Título del eje x
   #                   y = expression(Leaf~area~(cm^2)),  # Título del eje y con cm^2
   #                   title = "Leaf Area by Species")  # Añadir título principal
-  #               
-  #               
-  #             
-  #             
-  #             
-  #               
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### ---------------- ######
   #           ######   Petiole_area   ######
   #           ###### ---------------- ######
-  #        
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Petiole_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Petiole_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1046,7 +989,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Petiole_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1057,18 +1000,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #           
-  #             
-  #             
-  #             
-  #             
-  #             
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### -------------------------- ######
   #           ######   Leaf_area_with_petiole   ######
   #           ###### -------------------------- ######
-  #           
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Leaf_area_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Leaf_area_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1077,7 +1020,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Leaf_area_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1088,18 +1031,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #      
-  #             
-  #             
-  #             
-  #             
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### ------------------ ######
   #           ######   Leaf_thickness   ######
   #           ###### ------------------ ######
-  #           
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Leaf_thickness", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Leaf_thickness", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1108,7 +1051,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Leaf_thickness", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1119,18 +1062,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #      
-  #           
-  #             
-  #             
-  #             
-  #             
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### ------------------------ ######
   #           ######   Petiole_fresh_weight   ######
   #           ###### ------------------------ ######
-  #           
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Petiole_fresh_weight", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Petiole_fresh_weight", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1139,7 +1082,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Petiole_fresh_weight", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1151,17 +1094,17 @@
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
   # 
-  #             
-  #             
-  #             
-  #             
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### ---------------------------------- ######
   #           ######   Leaf_fresh_weight_with_petiole   ######
   #           ###### ---------------------------------- ######
-  #           
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Leaf_fresh_weight_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Leaf_fresh_weight_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1170,7 +1113,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Leaf_fresh_weight_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1181,18 +1124,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #      
-  #             
-  #             
-  #             
-  #             
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### ------------------- ######
   #           ######   Leaf_dry_weight   ######
   #           ###### ------------------- ######
-  #           
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Leaf_dry_weight", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Leaf_dry_weight", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1201,7 +1144,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Leaf_dry_weight", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1212,18 +1155,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #       
-  #             
-  #             
-  #             
-  #             
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### ---------------------- ######
   #           ######   Petiole_dry_weight   ######
   #           ###### ---------------------- ######
-  #           
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Petiole_dry_weight", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Petiole_dry_weight", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1232,7 +1175,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Petiole_dry_weight", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1243,18 +1186,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #        
-  #           
-  #             
-  #             
-  #             
-  #             
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### -------------------------------- ######
   #           ######   Leaf_dry_weight_with_petiole   ######
   #           ###### -------------------------------- ######
-  #       
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Leaf_dry_weight_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Leaf_dry_weight_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1263,7 +1206,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Leaf_dry_weight_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1274,18 +1217,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
-  #             
-  #             
-  #             
-  #             
-  #           
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### ----------------------- ######
   #           ######   SLA_without_petiole   ######
   #           ###### ----------------------- ######
-  #           
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "SLA_without_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "SLA_without_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1294,7 +1237,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "SLA_without_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1305,18 +1248,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
-  #           
-  #             
-  #             
-  #             
-  #             
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
   #           ###### -------------------- ######
   #           ######   SLA_with_petiole   ######
   #           ###### -------------------- ######
-  #           
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "SLA_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "SLA_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1325,7 +1268,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "SLA_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1336,80 +1279,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #    
-  #           
-  #             
-  #             
-  #             
-  #             
-  #           ###### ---------------------------------------------------- ######
-  #           ######   Leaf_dry_weight_per_fresh_weight_without_petiole   ######
-  #           ###### ---------------------------------------------------- ######
-  #    
-  #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Leaf_dry_weight_per_fresh_weight_without_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
-  #               theme_bw() +
-  #               theme(
-  #                 panel.grid.major = element_blank(),
-  #                 panel.grid.minor = element_blank(),
-  #                 legend.position = "top",
-  #                 axis.line = element_line(color = "black"),
-  #                 axis.text.x = element_text (angle = 90),
-  #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
-  #             # Total
-  #             ggboxplot(Datos_m, x = "Type", y = "Leaf_dry_weight_per_fresh_weight_without_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
-  #               theme_bw() +
-  #               theme(
-  #                 panel.grid.major = element_blank(),
-  #                 panel.grid.minor = element_blank(),
-  #                 legend.position = "top",
-  #                 axis.line = element_line(color = "black"),
-  #                 axis.text.x = element_text (angle = 90),
-  #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
-  #             
-  #             
-  #             
-  #             
-  #           
-  #           ###### ------------------------------------------------- ######
-  #           ######   Leaf_dry_weight_per_fresh_weight_with_petiole   ######
-  #           ###### ------------------------------------------------- ######
-  #             
-  #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Leaf_dry_weight_per_fresh_weight_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
-  #               theme_bw() +
-  #               theme(
-  #                 panel.grid.major = element_blank(),
-  #                 panel.grid.minor = element_blank(),
-  #                 legend.position = "top",
-  #                 axis.line = element_line(color = "black"),
-  #                 axis.text.x = element_text (angle = 90),
-  #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
-  #             # Total
-  #             ggboxplot(Datos_m, x = "Type", y = "Leaf_dry_weight_per_fresh_weight_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
-  #               theme_bw() +
-  #               theme(
-  #                 panel.grid.major = element_blank(),
-  #                 panel.grid.minor = element_blank(),
-  #                 legend.position = "top",
-  #                 axis.line = element_line(color = "black"),
-  #                 axis.text.x = element_text (angle = 90),
-  #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
-  #             
-  #             
-  #             
-  #             
-  #         
-  #           ###### ---------------- ######
-  #           ######   Volumen_flor   ######
-  #           ###### ---------------- ######
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  #           ###### ------------------------ ######
+  #           ######   LDMC_without_petiole   ######
+  #           ###### ------------------------ ######
   # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Volumen_flor", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "LDMC_without_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1418,9 +1299,9 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
-  #             ggboxplot(Datos_m, x = "Type", y = "Volumen_flor", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Type", y = "LDMC_without_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1429,18 +1310,49 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #           
-  #           
-  #             
-  #             
-  #             
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  #           ###### --------------------- ######
+  #           ######   LDMC_with_petiole   ######
+  #           ###### --------------------- ######
+  # 
+  #             # Graph with all the species
+  #             ggboxplot(Datos_m, x = "Species", y = "LDMC_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #               theme_bw() +
+  #               theme(
+  #                 panel.grid.major = element_blank(),
+  #                 panel.grid.minor = element_blank(),
+  #                 legend.position = "top",
+  #                 axis.line = element_line(color = "black"),
+  #                 axis.text.x = element_text (angle = 90),
+  #                 legend.key = element_rect(fill = "white", color = "black"))
+  # 
+  #             # Total
+  #             ggboxplot(Datos_m, x = "Type", y = "LDMC_with_petiole", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #               theme_bw() +
+  #               theme(
+  #                 panel.grid.major = element_blank(),
+  #                 panel.grid.minor = element_blank(),
+  #                 legend.position = "top",
+  #                 axis.line = element_line(color = "black"),
+  #                 axis.text.x = element_text (angle = 90),
+  #                 legend.key = element_rect(fill = "white", color = "black"))
+  # 
+  # 
+  # 
+  # 
+  # 
   #             
   #           ###### --------------- ######
   #           ######   Flower_area   ######
   #           ###### --------------- ######
-  #           
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Flower_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Flower_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1449,7 +1361,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m, x = "Type", y = "Flower_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1461,17 +1373,17 @@
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
   # 
-  #             
-  #             
-  #             
   # 
-  #                           
+  # 
+  # 
+  # 
+  # 
   #           ###### ------------------------ ######
   #           ######   Relative_flower_area   ######
   #           ###### ------------------------ ######
-  #             
+  # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m_individ, x = "Especie", y = "Relative_flower_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m_individ, x = "Species", y = "Relative_flower_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1480,7 +1392,7 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
   #             ggboxplot(Datos_m_individ, x = "Type", y = "Relative_flower_area", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
@@ -1491,18 +1403,18 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #           
-  #             
-  #             
-  #             
-  #             
-  #             
-  #           ###### --------------- ######
-  #           ######   Alt_max_veg   ######
-  #           ###### --------------- ######
+  # 
+  # 
+  # 
+  # 
+  # 
+  # 
+  #           ###### ------------------------ ######
+  #           ######   Plant_max_veg_height   ######
+  #           ###### ------------------------ ######
   # 
   #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Alt_max_veg", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Species", y = "Plant_max_veg_height", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1511,9 +1423,9 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #             
+  # 
   #             # Total
-  #             ggboxplot(Datos_m, x = "Type", y = "Alt_max_veg", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
+  #             ggboxplot(Datos_m, x = "Type", y = "Plant_max_veg_height", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
   #               theme_bw() +
   #               theme(
   #                 panel.grid.major = element_blank(),
@@ -1522,48 +1434,15 @@
   #                 axis.line = element_line(color = "black"),
   #                 axis.text.x = element_text (angle = 90),
   #                 legend.key = element_rect(fill = "white", color = "black"))
-  #           
-  #             
-  #             
-  #             
-  #             
-  #             
-  #           ###### ---------------------- ######
-  #           ######   Volumen_planta_veg   ######
-  #           ###### ---------------------- ######
-  #           
-  #             # Graph with all the species
-  #             ggboxplot(Datos_m, x = "Especie", y = "Volumen_planta_veg", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
-  #               theme_bw() +
-  #               theme(
-  #                 panel.grid.major = element_blank(),
-  #                 panel.grid.minor = element_blank(),
-  #                 legend.position = "top",
-  #                 axis.line = element_line(color = "black"),
-  #                 axis.text.x = element_text (angle = 90),
-  #                 legend.key = element_rect(fill = "white", color = "black")) +
-  #               ylim (NA, 10000)
-  #             
-  #             # Total
-  #             ggboxplot(Datos_m, x = "Type", y = "Volumen_planta_veg", fill = "Type", color = "black", alpha = 0.7, width = 0.5) +
-  #               theme_bw() +
-  #               theme(
-  #                 panel.grid.major = element_blank(),
-  #                 panel.grid.minor = element_blank(),
-  #                 legend.position = "top",
-  #                 axis.line = element_line(color = "black"),
-  #                 axis.text.x = element_text (angle = 90),
-  #                 legend.key = element_rect(fill = "white", color = "black")) +
-  #               ylim (NA, 10000)
-  #     
-  #             
-  #  
-  #             
-  #             
-  #             
-  #             
-  #            
-  #            
+
+
+
+
+
+
+
+
+              
   ######### ----------------- #########
   ######### ----------------- #########
   #########       MODELS      ######### 
@@ -1574,7 +1453,7 @@
     # the data, and answer all of our questions. First we are going to do a correlation
     # matrix to see that many of our variables are almost the same (e.g. leaf area
     # without petiole and leaf area with petiole). Then we will do linear mixed models
-    # for all individual traits, including "Pairs" and "Especie" as random effects
+    # for all individual traits, including "Pairs" and "Species" as random effects
     # and then we will do some multivariate analysis.
         
         
@@ -1601,6 +1480,7 @@
         ###### --------------- ######
         
           library(corrplot) 
+          library(ggcorrplot)
         
         
         
@@ -1614,24 +1494,49 @@
           # I have to make a matrix with all the variables of which I want to do
           # the correlation matrix
           Datos_m_Ord <- Datos_m_individ[!is.na(Datos_m_individ$Flower_area),]
-          matrizcor <- Datos_m_Ord[ ,c(8:24, 28:37)]
-          rownames(matrizcor) <- Datos_m_Ord$Codigo_individuo
+          matrizcor <- Datos_m_Ord[ ,c(8:21, 26:31)]
+          rownames(matrizcor) <- Datos_m_Ord$Cod_ind
           
           # Now the correlation matrix
           mydata.cor = cor(matrizcor, use = "complete.obs")
           
           # I could copy and paste it in an excel for better visualization
           
+          # One way of visualizing it
+          corrplot(mydata.cor, tl.cex = 0.3)
+          
           # Another way of visualizing it
-          corrplot(mydata.cor, tl.cex = 0.1)
+          correlation <- ggcorrplot(
+            mydata.cor, 
+            method = "circle", 
+            ggtheme = theme_classic(),
+            lab = TRUE,
+            lab_col = "black",
+            lab_size = 1.5,
+            title = "Correlation plot",
+            tl.cex = 7,
+            tl.col = "black",
+            tl.srt = 45)
+          
+          # Visualize it
+          correlation
+          
+          # Save it as an image
+          ggsave(filename = "Supplementary_Figure1_Correlation.png", 
+                 plot = correlation,
+                 path = "Figures",
+                 width = 16, 
+                 height = 14, 
+                 units = "cm", 
+                 dpi = 300)
+          
+          
           
           
         
       
               
                         
-          
-              
     ######## ------------------------- ########
     ######## -- Linear mixed models -- ########
     ######## ------------------------- ########
@@ -1674,7 +1579,7 @@
         # first we do all the process without any transformation, then we check the
         # residuals, and if needed (in all the cases is needed) we transform the data 
         # with a log. To get different ways to see the significance of the data, we do 
-        # a base model, with all the random effects ("Pairs" and "Especies" nested inside)
+        # a base model, with all the random effects ("Pairs" and "Speciess" nested inside)
         # but with no explanatory variable, and then the same model with the explanatory
         # variable "Type". We can then compare the models, as another way of checking if
         # adding "Type" to the model adds information or not. Of course, we also check the
@@ -1687,7 +1592,7 @@
           
         # At first, elevation was added to the models, but as it was no significant in 
         # almost all cases, it was deleted to simplify the models. It is only still there
-        # in the case of "Alt_max_veg" (Plant size), where it was significant and it
+        # in the case of "Plant_max_veg_height" (Plant size), where it was significant and it
         # changed the significance of the trait. As it is discussed in the manuscript,
         # it looks safe to believe that the being a cliff specialist or not actually
         # has an effect on plant size, even though elevation might have an effect also. 
@@ -1715,8 +1620,8 @@
             # First with the raw data
             
             # Models
-            Modelo_0 <- lmer(Leaf_area ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_1 <- lmer(Leaf_area ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_0 <- lmer(Leaf_area ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_1 <- lmer(Leaf_area ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summary
             summary(Modelo_0)
@@ -1754,8 +1659,8 @@
             # If a transformaion is needed
             
             # Models
-            Modelo_log_0 <- lmer(log(Leaf_area) ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_log_1 <- lmer(log(Leaf_area) ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_log_0 <- lmer(log(Leaf_area) ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_1 <- lmer(log(Leaf_area) ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summaries
             summary(Modelo_log_0)
@@ -1805,8 +1710,8 @@
           # First with the raw data
           
           # Models
-          Modelo_0 <- lmer(Leaf_thickness ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-          Modelo_1 <- lmer(Leaf_thickness ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+          Modelo_0 <- lmer(Leaf_thickness ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+          Modelo_1 <- lmer(Leaf_thickness ~ Type + (1|Pairs/Species), data=Datos_m_individ)
           
           # Summary
           summary(Modelo_0)
@@ -1844,8 +1749,8 @@
             # If a transformaion is needed
             
             # Models
-            Modelo_log_0 <- lmer(log(Leaf_thickness) ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_log_1 <- lmer(log(Leaf_thickness) ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_log_0 <- lmer(log(Leaf_thickness) ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_1 <- lmer(log(Leaf_thickness) ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summaries
             summary(Modelo_log_0)
@@ -1895,8 +1800,8 @@
             # First with the raw data
             
             # Models
-            Modelo_0 <- lmer(Leaf_fresh_weight ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_1 <- lmer(Leaf_fresh_weight ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_0 <- lmer(Leaf_fresh_weight ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_1 <- lmer(Leaf_fresh_weight ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summary
             summary(Modelo_0)
@@ -1934,8 +1839,8 @@
             # If a transformaion is needed
             
             # Models
-            Modelo_log_0 <- lmer(log(Leaf_fresh_weight) ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_log_1 <- lmer(log(Leaf_fresh_weight) ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_log_0 <- lmer(log(Leaf_fresh_weight) ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_1 <- lmer(log(Leaf_fresh_weight) ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summaries
             summary(Modelo_log_0)
@@ -1985,8 +1890,8 @@
             # First with the raw data
             
             # Models
-            Modelo_0 <- lmer(SLA_without_petiole ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_1 <- lmer(SLA_without_petiole ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_0 <- lmer(SLA_without_petiole ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_1 <- lmer(SLA_without_petiole ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summary
             summary(Modelo_0)
@@ -2024,8 +1929,8 @@
             # If a transformaion is needed
             
             # Models
-            Modelo_log_0 <- lmer(log(SLA_without_petiole) ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_log_1 <- lmer(log(SLA_without_petiole) ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_log_0 <- lmer(log(SLA_without_petiole) ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_1 <- lmer(log(SLA_without_petiole) ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summaries
             summary(Modelo_log_0)
@@ -2057,9 +1962,9 @@
             
             
   
-        ###### ------------------------------------------------------ ######
-        ###### -- Leaf_dry_weight_per_fresh_weight_without_petiole -- ###### 
-        ###### ------------------------------------------------------ ######
+        ###### -------------------------- ######
+        ###### -- LDMC_without_petiole -- ###### 
+        ###### -------------------------- ######
           
           # First we do models with the data but if it is needed we transform it
           # so the assumptions of the lmm are met
@@ -2075,8 +1980,8 @@
             # First with the raw data
             
             # Models
-            Modelo_0 <- lmer(Leaf_dry_weight_per_fresh_weight_without_petiole ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_1 <- lmer(Leaf_dry_weight_per_fresh_weight_without_petiole ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_0 <- lmer(LDMC_without_petiole ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_1 <- lmer(LDMC_without_petiole ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summary
             summary(Modelo_0)
@@ -2114,8 +2019,8 @@
             # If a transformaion is needed
             
             # Models
-            Modelo_log_0 <- lmer(log(Leaf_dry_weight_per_fresh_weight_without_petiole) ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_log_1 <- lmer(log(Leaf_dry_weight_per_fresh_weight_without_petiole) ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_log_0 <- lmer(log(LDMC_without_petiole) ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_1 <- lmer(log(LDMC_without_petiole) ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summaries
             summary(Modelo_log_0)
@@ -2165,8 +2070,8 @@
             # First with the raw data
             
             # Models
-            Modelo_0 <- lmer(Flower_area ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_1 <- lmer(Flower_area ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_0 <- lmer(Flower_area ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_1 <- lmer(Flower_area ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summary
             summary(Modelo_0)
@@ -2204,8 +2109,8 @@
             # If a transformaion is needed
             
             # Models
-            Modelo_log_0 <- lmer(log(Flower_area) ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_log_1 <- lmer(log(Flower_area) ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_log_0 <- lmer(log(Flower_area) ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_1 <- lmer(log(Flower_area) ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summaries
             summary(Modelo_log_0)
@@ -2237,9 +2142,9 @@
      
             
             
-        ###### ----------------- ######
-        ###### -- Alt_max_veg -- ###### 
-        ###### ----------------- ######
+        ###### -------------------------- ######
+        ###### -- Plant_max_veg_height -- ###### 
+        ###### -------------------------- ######
           
           # First we do models with the data but if it is needed we transform it
           # so the assumptions of the lmm are met
@@ -2259,8 +2164,8 @@
             # First with the raw data
             
             # Models
-            Modelo_0 <- lmer(Alt_max_veg ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_1 <- lmer(Alt_max_veg ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_0 <- lmer(Plant_max_veg_height ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_1 <- lmer(Plant_max_veg_height ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summary
             summary(Modelo_0)
@@ -2298,9 +2203,9 @@
             # If a transformaion is needed
             
             # Models
-            Modelo_log_0 <- lmer(log(Alt_max_veg) ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_log_1 <- lmer(log(Alt_max_veg) ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_log_2 <- lmer(log(Alt_max_veg) ~ Type + Elevation + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_log_0 <- lmer(log(Plant_max_veg_height) ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_1 <- lmer(log(Plant_max_veg_height) ~ Type + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_2 <- lmer(log(Plant_max_veg_height) ~ Type + Elevation + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summaries
             summary(Modelo_log_0)
@@ -2359,8 +2264,8 @@
             # First with the raw data
             
             # Models
-            Modelo_0 <- lmer(Relative_flower_area ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_1 <- lmer(Relative_flower_area ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_0 <- lmer(Relative_flower_area ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_1 <- lmer(Relative_flower_area ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summary
             summary(Modelo_0)
@@ -2398,8 +2303,8 @@
             # If a transformaion is needed
             
             # Models
-            Modelo_log_0 <- lmer(log(Relative_flower_area) ~ 1 + (1|Pairs/Especie), data=Datos_m_individ)
-            Modelo_log_1 <- lmer(log(Relative_flower_area) ~ Type + (1|Pairs/Especie), data=Datos_m_individ)
+            Modelo_log_0 <- lmer(log(Relative_flower_area) ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_1 <- lmer(log(Relative_flower_area) ~ Type + (1|Pairs/Species), data=Datos_m_individ)
             
             # Summaries
             summary(Modelo_log_0)
@@ -2473,9 +2378,9 @@
           # species, and lines that connect the dots so it is more visual.
               
           # summarize per species
-          Datos_m_especie <- Datos_m_individ %>%
-            group_by(Familia, Type, Pairs, Localidad, Especie) %>%
-            summarise(across(c(2:32), mean, na.rm = TRUE))
+          Datos_m_Species <- Datos_m_individ %>%
+            group_by(Family, Type, Pairs, Locality, Species) %>%
+            summarise(across(c(2:26), mean, na.rm = TRUE))
             
           # Colours for the graphs
           colores_grafico <- c("Generalist" = "#009E73", "Cliff_specialist" = "#E69F00")
@@ -2508,21 +2413,27 @@
           ##### --------------- ##### 
               
             # Transform data for geom_segment
-            datos_segmentos <- Datos_m_especie[ , c("Type", "Pairs", "Leaf_area")]
+            datos_segmentos <- Datos_m_Species[ , c("Type", "Pairs", "Leaf_area")]
             datos_segmentos <- datos_segmentos %>%
               pivot_wider(names_from = Type, values_from = Leaf_area)
             
             # Create the graph and save it
-            graphs[[1]] <- ggplot(Datos_m_especie, aes(x = Type, y = Leaf_area)) +
+            graphs[[1]] <- ggplot(Datos_m_Species, aes(x = Type, y = Leaf_area)) +
               geom_boxplot(aes(fill = Type), color = "black", alpha = 0.5, size = 0.5) +
-              scale_fill_manual(values = colores_grafico) +
+              scale_fill_manual(
+                values = colores_grafico,
+                labels = c("Cliff specialist", "Generalist")) +
               new_scale_fill() +
               geom_segment(data = datos_segmentos,
                            aes(x = 'Generalist', xend = 'Cliff_specialist',
                                y = Generalist, yend = Cliff_specialist, color = Pairs),
                            size = 0.5) +
               geom_point(color= "black", aes(fill = Pairs, shape = Type), size = 1.5) +
-              scale_color_manual(values = coloType) +
+              scale_color_manual(
+                values = coloType,
+                guide  = guide_legend(
+                  theme = theme(
+                    legend.text = element_text(face = "italic")))) +
               scale_fill_manual(values = coloType) +
               scale_shape_manual(values = formas) +
               scale_x_discrete(labels = c("Cliff specialist", "Generalist")) +
@@ -2547,21 +2458,27 @@
           ##### -------------------- #####
               
             # Transform data for geom_segment
-            datos_segmentos <- Datos_m_especie[ , c("Type", "Pairs", "Leaf_thickness")]
+            datos_segmentos <- Datos_m_Species[ , c("Type", "Pairs", "Leaf_thickness")]
             datos_segmentos <- datos_segmentos %>%
               pivot_wider(names_from = Type, values_from = Leaf_thickness)
               
             # Create the graph and save it
-            graphs[[2]] <- ggplot(Datos_m_especie, aes(x = Type, y = Leaf_thickness)) +
+            graphs[[2]] <- ggplot(Datos_m_Species, aes(x = Type, y = Leaf_thickness)) +
               geom_boxplot(aes(fill = Type), color = "black", alpha = 0.5, size = 0.5) +
-              scale_fill_manual(values = colores_grafico) +
+              scale_fill_manual(
+                values = colores_grafico,
+                labels = c("Cliff specialist", "Generalist")) +
               new_scale_fill() +
               geom_segment(data = datos_segmentos,
                            aes(x = 'Generalist', xend = 'Cliff_specialist',
                                y = Generalist, yend = Cliff_specialist, color = Pairs),
                            size = 0.5) +
               geom_point(color= "black", aes(fill = Pairs, shape = Type), size = 1.5) +
-              scale_color_manual(values = coloType) +
+              scale_color_manual(
+                values = coloType,
+                guide  = guide_legend(
+                  theme = theme(
+                    legend.text = element_text(face = "italic")))) +
               scale_fill_manual(values = coloType) +
               scale_shape_manual(values = formas) +
               scale_x_discrete(labels = c("Cliff specialist", "Generalist")) +
@@ -2586,14 +2503,16 @@
           ##### ----------------------- #####
              
             # Transform data for geom_segment
-            datos_segmentos <- Datos_m_especie[ , c("Type", "Pairs", "Leaf_fresh_weight")]
+            datos_segmentos <- Datos_m_Species[ , c("Type", "Pairs", "Leaf_fresh_weight")]
             datos_segmentos <- datos_segmentos %>%
               pivot_wider(names_from = Type, values_from = Leaf_fresh_weight)
               
             # Create the graph and save it
-            graphs[[3]] <- ggplot(Datos_m_especie, aes(x = Type, y = Leaf_fresh_weight)) +
+            graphs[[3]] <- ggplot(Datos_m_Species, aes(x = Type, y = Leaf_fresh_weight)) +
               geom_boxplot(aes(fill = Type), color = "black", alpha = 0.5, size = 0.5) +
-              scale_fill_manual(values = colores_grafico) +
+              scale_fill_manual(
+                values = colores_grafico,
+                labels = c("Cliff specialist", "Generalist")) +
               new_scale_fill() +
               geom_segment(data = datos_segmentos,
                            aes(x = 'Generalist', xend = 'Cliff_specialist',
@@ -2601,7 +2520,11 @@
                            size = 0.5) +
               geom_point(color= "black", aes(fill = Pairs, shape = Type), size = 1.5) +
               scale_fill_manual(values = coloType) +
-              scale_color_manual(values = coloType) +
+              scale_color_manual(
+                values = coloType,
+                guide  = guide_legend(
+                  theme = theme(
+                    legend.text = element_text(face = "italic")))) +
               scale_shape_manual(values = formas) +
               scale_x_discrete(labels = c("Cliff specialist", "Generalist")) +
               labs(title = NULL, x = NULL, y = "Leaf fresh weight (mg)") +
@@ -2625,14 +2548,16 @@
           ##### ------------------------- #####
             
             # Transform data for geom_segment
-            datos_segmentos <- Datos_m_especie[ , c("Type", "Pairs", "SLA_without_petiole")]
+            datos_segmentos <- Datos_m_Species[ , c("Type", "Pairs", "SLA_without_petiole")]
             datos_segmentos <- datos_segmentos %>%
               pivot_wider(names_from = Type, values_from = SLA_without_petiole)
             
             # Create the graph and save it
-            graphs[[4]] <- ggplot(Datos_m_especie, aes(x = Type, y = SLA_without_petiole)) +
+            graphs[[4]] <- ggplot(Datos_m_Species, aes(x = Type, y = SLA_without_petiole)) +
               geom_boxplot(aes(fill = Type), color = "black", alpha = 0.5, size = 0.5) +
-              scale_fill_manual(values = colores_grafico) +
+              scale_fill_manual(
+                values = colores_grafico,
+                labels = c("Cliff specialist", "Generalist")) +
               new_scale_fill() +
               geom_segment(data = datos_segmentos,
                            aes(x = 'Generalist', xend = 'Cliff_specialist',
@@ -2640,7 +2565,11 @@
                            size = 0.5) +
               geom_point(color= "black", aes(fill = Pairs, shape = Type), size = 1.5) +
               scale_fill_manual(values = coloType) +
-              scale_color_manual(values = coloType) +
+              scale_color_manual(
+                values = coloType,
+                guide  = guide_legend(
+                  theme = theme(
+                    legend.text = element_text(face = "italic")))) +
               scale_shape_manual(values = formas) +
               scale_x_discrete(labels = c("Cliff specialist", "Generalist")) +
               labs(title = NULL, x = NULL, y = "SLA (cm2/mg)") +
@@ -2651,7 +2580,7 @@
                     axis.text = element_text(size = 6.5),
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
-              geom_text(label = ".", x = 2.1, y = 340, size=5) +
+              geom_text(label = ".", x = 2.15, y = 345, size=5) +
               annotate("text", label = "R2m = 0.07", x = 0.9, y = 430, size=2) +
               annotate("text", label = "R2c = 0.86", x = 0.9, y = 400, size=2) 
             
@@ -2659,19 +2588,21 @@
             
             
             
-          ##### ------------------------------------------------------ #####
-          ##### -- Leaf_dry_weight_per_fresh_weight_without_petiole -- #####
-          ##### ------------------------------------------------------ #####
+          ##### -------------------------- #####
+          ##### -- LDMC_without_petiole -- #####
+          ##### -------------------------- #####
               
             # Transform data for geom_segment
-            datos_segmentos <- Datos_m_especie[ , c("Type", "Pairs", "Leaf_dry_weight_per_fresh_weight_without_petiole")]
+            datos_segmentos <- Datos_m_Species[ , c("Type", "Pairs", "LDMC_without_petiole")]
             datos_segmentos <- datos_segmentos %>%
-              pivot_wider(names_from = Type, values_from = Leaf_dry_weight_per_fresh_weight_without_petiole)
+              pivot_wider(names_from = Type, values_from = LDMC_without_petiole)
             
             # Create the graph and save it
-            graphs[[5]] <- ggplot(Datos_m_especie, aes(x = Type, y = Leaf_dry_weight_per_fresh_weight_without_petiole)) +
+            graphs[[5]] <- ggplot(Datos_m_Species, aes(x = Type, y = LDMC_without_petiole)) +
               geom_boxplot(aes(fill = Type), color = "black", alpha = 0.5, size = 0.5) +
-              scale_fill_manual(values = colores_grafico) +
+              scale_fill_manual(
+                values = colores_grafico,
+                labels = c("Cliff specialist", "Generalist")) +
               new_scale_fill() +
               geom_segment(data = datos_segmentos,
                            aes(x = 'Generalist', xend = 'Cliff_specialist',
@@ -2679,7 +2610,11 @@
                            size = 0.5) +
               geom_point(color= "black", aes(fill = Pairs, shape = Type), size = 1.5) +
               scale_fill_manual(values = coloType) +
-              scale_color_manual(values = coloType) +
+              scale_color_manual(
+                values = coloType,
+                guide  = guide_legend(
+                  theme = theme(
+                    legend.text = element_text(face = "italic")))) +
               scale_shape_manual(values = formas) +
               scale_x_discrete(labels = c("Cliff specialist", "Generalist")) +
               labs(title = NULL, x = NULL, y = "LDMC (mg/mg)") +
@@ -2698,19 +2633,21 @@
             
             
             
-          ##### ----------------- #####
-          ##### -- Alt_max_veg -- #####
-          ##### ----------------- #####
+          ##### -------------------------- #####
+          ##### -- Plant_max_veg_height -- #####
+          ##### -------------------------- #####
              
             # Transform data for geom_segment
-            datos_segmentos <- Datos_m_especie[ , c("Type", "Pairs", "Alt_max_veg")]
+            datos_segmentos <- Datos_m_Species[ , c("Type", "Pairs", "Plant_max_veg_height")]
             datos_segmentos <- datos_segmentos %>%
-              pivot_wider(names_from = Type, values_from = Alt_max_veg)
+              pivot_wider(names_from = Type, values_from = Plant_max_veg_height)
             
             # Create the graph and save it
-            graphs[[6]] <- ggplot(Datos_m_especie, aes(x = Type, y = Alt_max_veg)) +
+            graphs[[6]] <- ggplot(Datos_m_Species, aes(x = Type, y = Plant_max_veg_height)) +
               geom_boxplot(aes(fill = Type), color = "black", alpha = 0.5, size = 0.5) +
-              scale_fill_manual(values = colores_grafico) +
+              scale_fill_manual(
+                values = colores_grafico,
+                labels = c("Cliff specialist", "Generalist")) +
               new_scale_fill() +
               geom_segment(data = datos_segmentos,
                            aes(x = 'Generalist', xend = 'Cliff_specialist',
@@ -2718,7 +2655,11 @@
                            size = 0.5) +
               geom_point(color= "black", aes(fill = Pairs, shape = Type), size = 1.5) +
               scale_fill_manual(values = coloType) +
-              scale_color_manual(values = coloType) +
+              scale_color_manual(
+                values = coloType,
+                guide  = guide_legend(
+                  theme = theme(
+                    legend.text = element_text(face = "italic")))) +
               scale_x_discrete(labels = c("Cliff specialist", "Generalist")) +
               scale_shape_manual(values = formas) +
               labs(title = NULL,
@@ -2744,14 +2685,16 @@
           ##### ----------------- #####
               
             # Transform data for geom_segment
-            datos_segmentos <- Datos_m_especie[ , c("Type", "Pairs", "Flower_area")]
+            datos_segmentos <- Datos_m_Species[ , c("Type", "Pairs", "Flower_area")]
             datos_segmentos <- datos_segmentos %>%
               pivot_wider(names_from = Type, values_from = Flower_area)
             
             # Create the graph and save it
-            graphs[[7]] <- ggplot(Datos_m_especie, aes(x = Type, y = Flower_area)) +
+            graphs[[7]] <- ggplot(Datos_m_Species, aes(x = Type, y = Flower_area)) +
               geom_boxplot(aes(fill = Type), color = "black", alpha = 0.5, size = 0.5) +
-              scale_fill_manual(values = colores_grafico) +
+              scale_fill_manual(
+                values = colores_grafico,
+                labels = c("Cliff specialist", "Generalist")) +
               new_scale_fill() +
               geom_segment(data = datos_segmentos,
                            aes(x = 'Generalist', xend = 'Cliff_specialist',
@@ -2759,7 +2702,11 @@
                            size = 0.5) +
               geom_point(color= "black", aes(fill = Pairs, shape = Type), size = 1.5) +
               scale_fill_manual(values = coloType) +
-              scale_color_manual(values = coloType) +
+              scale_color_manual(
+                values = coloType,
+                guide  = guide_legend(
+                  theme = theme(
+                    legend.text = element_text(face = "italic")))) +
               scale_shape_manual(values = formas) +
               scale_x_discrete(labels = c("Cliff specialist", "Generalist")) +
               labs(title = NULL,
@@ -2785,14 +2732,16 @@
           ##### -------------------------- #####
               
             # Transform data for geom_segment
-            datos_segmentos <- Datos_m_especie[ , c("Type", "Pairs", "Relative_flower_area")]
+            datos_segmentos <- Datos_m_Species[ , c("Type", "Pairs", "Relative_flower_area")]
             datos_segmentos <- datos_segmentos %>%
               pivot_wider(names_from = Type, values_from = Relative_flower_area)
             
             # Create the graph and save it
-            graphs[[8]] <- ggplot(Datos_m_especie, aes(x = Type, y = Relative_flower_area)) +
+            graphs[[8]] <- ggplot(Datos_m_Species, aes(x = Type, y = Relative_flower_area)) +
               geom_boxplot(aes(fill = Type), color = "black", alpha = 0.5, size = 0.5) +
-              scale_fill_manual(values = colores_grafico) +
+              scale_fill_manual(
+                values = colores_grafico,
+                labels = c("Cliff specialist", "Generalist"))+
               new_scale_fill() +
               geom_segment(data = datos_segmentos,
                            aes(x = 'Generalist', xend = 'Cliff_specialist',
@@ -2800,7 +2749,11 @@
                            size = 0.5) +
               geom_point(color= "black", aes(fill = Pairs, shape = Type), size = 1.5) +
               scale_fill_manual(values = coloType) +
-              scale_color_manual(values = coloType) +
+              scale_color_manual(
+                values = coloType,
+                guide  = guide_legend(
+                  theme = theme(
+                    legend.text = element_text(face = "italic")))) +
               scale_shape_manual(values = formas) +
               scale_x_discrete(labels = c("Cliff specialist", "Generalist")) +
               labs(title = NULL,
@@ -2837,14 +2790,16 @@
               theme(
                 legend.position = "right",
                 legend.title = element_text(size = 9, face = "bold"),
-                legend.text = element_text(size = 8, face = "italic")
+                legend.text = element_text(size = 8)
               ) +
               guides(
                 fill = "none",
                 shape = "none",
-                color = guide_legend(title = "Pairs")
-              )
-            
+                color = guide_legend(
+                  title = "Pairs",
+                  theme = theme(
+                    legend.text = element_text(face = "italic"))))
+
             # Show final graph
             print(final_plot)
             
@@ -2953,11 +2908,11 @@
             #### -- Matrix ready and PCA -- ####
             #### -------------------------- ####
             
-              # I have to make a matrix with my data so...      
+              # I have to make a matrix with my data so... 
               Datos_m_Ord <- Datos_m_individ[!is.na(Datos_m_individ$Flower_area),]
-              matrizmorf <- Datos_m_Ord[ ,c(8, 11, 12, 18, 22, 30, 36, 37)]
-              rownames(matrizmorf) <- Datos_m_Ord$Codigo_individuo
-              
+              matrizmorf <- Datos_m_Ord[ ,c(8, 11, 12, 18, 20, 27, 30, 31)]
+              rownames(matrizmorf) <- Datos_m_Ord$Cod_ind
+            
               # Do the PCA  
               pca <- prcomp(matrizmorf, scale=TRUE) 
               
@@ -3066,9 +3021,9 @@
                 
                 # Add custom labeller
                 custom_label <- c(
-                  "Alt_max_veg" = "Plant size",
+                  "Plant_max_veg_height" = "Plant size",
                   "Flower_area" = "Flower area",
-                  "Leaf_dry_weight_per_fresh_weight_without_petiole" = "LDMC",
+                  "LDMC_without_petiole" = "LDMC",
                   "Leaf_fresh_weight" = "Leaf weight",
                   "Leaf_area" = "Leaf area",
                   "Leaf_thickness" = "Leaf thickness",
@@ -3225,8 +3180,8 @@
             
             # First we do the data frame with the traits 
             Datos_m_Ord <- Datos_m_individ[!is.na(Datos_m_individ$Flower_area),]
-            matrizmorf <- Datos_m_Ord[ ,c(8, 11, 12, 18, 22, 30, 36, 37)]
-            rownames(matrizmorf) <- Datos_m_Ord$Codigo_individuo
+            matrizmorf <- Datos_m_Ord[ ,c(8, 11, 12, 18, 20, 27, 30, 31)]
+            rownames(matrizmorf) <- Datos_m_Ord$Cod_ind
             
             # Data frame of explanatory variables
             explanatory <- Datos_m_Ord[, c("Type", "Pairs")]
@@ -3316,8 +3271,8 @@
           
             # First the dataframe
             Datos_m_Ord <- Datos_m_individ[!is.na(Datos_m_individ$Flower_area),]
-            matrizmorf <- Datos_m_Ord[ ,c(8, 11, 12, 18, 22, 30, 36, 37)]
-            rownames(matrizmorf) <- Datos_m_Ord$Codigo_individuo
+            matrizmorf <- Datos_m_Ord[ ,c(8, 11, 12, 18, 20, 27, 30, 31)]
+            rownames(matrizmorf) <- Datos_m_Ord$Cod_ind
             
             # And adonis2 for the model
             perm_model <- adonis2(Datos_m_Ord[ ,c(8, 11, 12, 18, 22, 30, 36, 37)] ~ Pairs * Type,
@@ -3369,8 +3324,8 @@
             
             # First the matrix
             Datos_m_Ord <- Datos_m_individ[!is.na(Datos_m_individ$Flower_area),]
-            matrizmorf <- Datos_m_Ord[ ,c(8, 11, 12, 18, 22, 30, 36, 37)]
-            rownames(matrizmorf) <- Datos_m_Ord$Codigo_individuo
+            matrizmorf <- Datos_m_Ord[ ,c(8, 11, 12, 18, 20, 27, 30, 31)]
+            rownames(matrizmorf) <- Datos_m_Ord$Cod_ind
             
             # The the explanatory matrix
             explanatory <- Datos_m_Ord[, c("Type", "Pairs")]
@@ -3651,11 +3606,8 @@
           
           # summarie by species
           Datos_sf_filtrados <- Datos_sf_filtrados %>%
-            group_by(Especie, Localidad) %>%
+            group_by(Species, Locality) %>%
             slice(1)
-          
-          # remove pairs for which I dont have the data
-          Datos_sf_filtrados <- Datos_sf_filtrados[Datos_sf_filtrados$Pairs!="Bupleurum", ]
           
           # Duplicate Coordinates
           Datos_sf_filtrados$Cor_X <- Datos_sf_filtrados$Coord_X
@@ -3665,7 +3617,7 @@
           Datos_sf_filtrados <- st_as_sf(Datos_sf_filtrados, coords = c("Coord_X", "Coord_Y"), crs = 4326)
           
           # Remove streptocarpus from map, as it is recolected from pots and not from nature
-          Datos_sf_filtrados <- Datos_sf_filtrados[Datos_sf_filtrados$Especie!="Streptocarpus ionanthus", ]
+          Datos_sf_filtrados <- Datos_sf_filtrados[Datos_sf_filtrados$Species!="Streptocarpus ionanthus", ]
           
           
           
@@ -3747,6 +3699,8 @@
           
           # color for elevation palette
           elevation_colors <- c("darkgreen", "yellow", "saddlebrown", "white")
+          elevation_colors <- c("grey100", "grey80", "grey60", "grey40", "grey20", "grey1")
+          
 
           # Colour for the type of species
           colores_grafico <- c("Generalist" = "#009E73", "Cliff_specialist" = "#E69F00")
@@ -3866,7 +3820,7 @@
               # Manual legend for "Type"
               type_legend1 <- ggplot(data.frame(Type = c("Generalist", "Cliff specialist"),
                                                Shape = c(24, 21)), aes(x = 1, y = Type)) +
-                geom_point(aes(shape = Type), size = 4) +
+                geom_point(aes(shape = Type), size = 3) +
                 scale_shape_manual(name = "Type", values = c("Generalist" = 24, "Cliff specialist" = 21)) +
                 theme_minimal() +
                 theme(legend.position = "right",
@@ -3883,10 +3837,10 @@
                 theme(legend.position = "right",
                       legend.title = element_text(face = "bold", size = 10),
                       legend.text = element_text(face = "italic", size = 8),
-                      legend.key.size = unit(0.4, "cm"),     # Tamaño de la clave de la leyenda
-                      legend.spacing = unit(0.1, "cm"),      # Espaciado entre las claves de la leyenda
-                      legend.margin = margin(0, 0, 0, 0),       # Márgenes de la leyenda
-                      legend.box.margin = margin(0, 0, 0, 0),    # Márgenes de la caja de la leyenda
+                      legend.key.size = unit(0.6, "cm"),    
+                      legend.spacing = unit(0.1, "cm"),      
+                      legend.margin = margin(0, 0, 0, 0),      
+                      legend.box.margin = margin(0, 0, 0, 0),    
                       plot.background = element_rect(
                         fill = "white", colour = NA))
               
@@ -3902,6 +3856,8 @@
                 theme(legend.position = "right",
                       legend.title = element_text(face = "bold", size = 10),
                       legend.text = element_text(size = 8),
+                      legend.key.size = unit(0.3, "cm"),    
+                      legend.spacing = unit(0.1, "cm"),
                       legend.background = element_rect(
                         fill = "white", colour = NA))
               
@@ -3947,62 +3903,62 @@
                 )) + 
                 annotate(
                   "point",
-                  x = 0.277,
-                  y = 0.764,
+                  x = 0.272,
+                  y = 0.768,
                   shape = 22,  
-                  size = 6,
+                  size = 4,
                   color = "black",
-                  fill = NA,   
+                  fill = "white",   
                   stroke = 0.5  
                 ) + 
                 annotate(
                   "point",
-                  x = 0.365,
-                  y = 0.755,
+                  x = 0.36,
+                  y = 0.758,
                   shape = 22,  
-                  size = 6,
+                  size = 4,
                   color = "black",
-                  fill = NA,   
+                  fill = "white",   
                   stroke = 0.5  
                 ) + 
                 annotate(
                   "point",
-                  x = 0.27,
-                  y = 0.701,
+                  x = 0.264,
+                  y = 0.705,
                   shape = 22,  
-                  size = 6,
+                  size = 4,
                   color = "black",
-                  fill = NA,   
+                  fill = "white",   
                   stroke = 0.5  
                 ) + 
                 annotate(
                   "point",
-                  x = 0.471,
-                  y = 0.721,
+                  x = 0.468,
+                  y = 0.724,
                   shape = 22,  
-                  size = 6,
+                  size = 4,
                   color = "black",
-                  fill = NA,   
+                  fill = "white",   
                   stroke = 0.5  
                 ) + 
                 annotate(
                   "point",
-                  x = 0.486,
-                  y = 0.685,
+                  x = 0.485,
+                  y = 0.686,
                   shape = 22,  
-                  size = 6,
+                  size = 4,
                   color = "black",
-                  fill = NA,   
+                  fill = "white",   
                   stroke = 0.5  
                 ) + 
                 annotate(
                   "point",
-                  x = 0.52,
-                  y = 0.673,
+                  x = 0.518,
+                  y = 0.675,
                   shape = 22,  
-                  size = 6,
+                  size = 4,
                   color = "black",
-                  fill = NA,   
+                  fill = "white",   
                   stroke = 0.5  
                 ) +
                 annotate(
@@ -4195,7 +4151,7 @@
                 ) +
                 annotate(
                   "segment",
-                  x = 0.277, xend = 0.26,
+                  x = 0.272, xend = 0.26,
                   y = 0.778, yend = 0.8,
                   colour = "black",
                   size = 0.5,
@@ -4203,40 +4159,40 @@
                 ) +
                 annotate(
                   "segment",
-                  x = 0.365, xend = 0.4,
-                  y = 0.77, yend = 0.8,
+                  x = 0.36, xend = 0.4,
+                  y = 0.768, yend = 0.8,
                   colour = "black",
                   size = 0.5,
                   arrow = arrow(length = unit(0.3, "cm"))
                 ) +
                 annotate(
                   "segment",
-                  x = 0.255, xend = 0.24,
-                  y = 0.701, yend = 0.64,
+                  x = 0.264, xend = 0.24,
+                  y = 0.695, yend = 0.64,
                   colour = "black",
                   size = 0.5,
                   arrow = arrow(length = unit(0.3, "cm"))
                 ) +
                 annotate(
                   "segment",
-                  x = 0.471, xend = 0.54,
-                  y = 0.736, yend = 0.77,
+                  x = 0.468, xend = 0.54,
+                  y = 0.734, yend = 0.77,
                   colour = "black",
                   size = 0.5,
                   arrow = arrow(length = unit(0.3, "cm"))
                 ) +
                 annotate(
                   "segment",
-                  x = 0.471, xend = 0.45,
-                  y = 0.685, yend = 0.66,
+                  x = 0.475, xend = 0.45,
+                  y = 0.686, yend = 0.66,
                   colour = "black",
                   size = 0.5,
                   arrow = arrow(length = unit(0.3, "cm"))
                 ) +
                 annotate(
                   "segment",
-                  x = 0.535, xend = 0.56,
-                  y = 0.673, yend = 0.62,
+                  x = 0.528, xend = 0.56,
+                  y = 0.675, yend = 0.62,
                   colour = "black",
                   size = 0.5,
                   arrow = arrow(length = unit(0.3, "cm"))
@@ -4396,14 +4352,14 @@
             # partners in my analysis) and some empty columns.
     
             # Get the unique species from your database
-            Species <- data.frame("Counter" = NA, "species" = unique(Datos$Especie), "genus" = NA, "family" = NA,
+            Species <- data.frame("Counter" = NA, "species" = unique(Datos$Species), "genus" = NA, "family" = NA,
                                   "Pairs" = NA, "species.relative" = NA, "genus.relative" = NA,
                                   "close.relative" = NA, "Comentario" = NA, "Nombre" = NA)
     
             # Get the families and "Pairs"
-            Datos_reducido <- Datos[, c("Especie", "Familia", "Pairs")]
-            Datos_reducido_unico <- Datos_reducido %>% distinct(Especie, .keep_all = TRUE)
-            Species$family <- Datos_reducido_unico$Familia
+            Datos_reducido <- Datos[, c("Species", "Family", "Pairs")]
+            Datos_reducido_unico <- Datos_reducido %>% distinct(Species, .keep_all = TRUE)
+            Species$family <- Datos_reducido_unico$Family
             Species$Pairs <- Datos_reducido_unico$Pairs
             rm(Datos_reducido)
             rm(Datos_reducido_unico)
@@ -4761,7 +4717,7 @@
             T1[["tip.label"]] <- gsub("_", " ", T1[["tip.label"]])
             
             # Delete species used only as relatives
-            T1 <- drop.tip(T1, especies_a_eliminar_todas)
+            T1 <- drop.tip(T1, Speciess_a_eliminar_todas)
             
             
             
@@ -4791,22 +4747,22 @@
             formas <- c("Generalist" = 24, "Cliff_specialist" = 21) 
          
             # Add groups to colour lines of the trees
-            Datos_m_especie$Especie <- as.character(Datos_m_especie$Especie)
+            Datos_m_Species$Species <- as.character(Datos_m_Species$Species)
             
-            grp_pairs <- list(Ramonda = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Ramonda"],
-                        Antirrhinum = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Antirrhinum"],
-                        Asperula  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Asperula"],
-                        Campanula  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Campanula"],
-                        Hieracium  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Hieracium"],
-                        Lonicera  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Lonicera"],
-                        Androsace  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Androsace"],
-                        Petrocoptis  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Petrocoptis"],
-                        Saxifraga  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Saxifraga"],
-                        Hypericum  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Hypericum"],
-                        Sarcocapnos  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Sarcocapnos"],
-                        Dioscorea  = Datos_m_especie$Especie[Datos_m_especie$Pairs=="Dioscorea"])
+            grp_pairs <- list(Ramonda = Datos_m_Species$Species[Datos_m_Species$Pairs=="Ramonda"],
+                        Antirrhinum = Datos_m_Species$Species[Datos_m_Species$Pairs=="Antirrhinum"],
+                        Asperula  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Asperula"],
+                        Campanula  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Campanula"],
+                        Hieracium  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Hieracium"],
+                        Lonicera  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Lonicera"],
+                        Androsace  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Androsace"],
+                        Petrocoptis  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Petrocoptis"],
+                        Saxifraga  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Saxifraga"],
+                        Hypericum  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Hypericum"],
+                        Sarcocapnos  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Sarcocapnos"],
+                        Dioscorea  = Datos_m_Species$Species[Datos_m_Species$Pairs=="Dioscorea"])
             
-            Datos_m_especie$Especie <- factor(Datos_m_especie$Especie)
+            Datos_m_Species$Species <- factor(Datos_m_Species$Species)
             
             # groupOTU to add the groups
             T1 <- groupOTU(T1, grp_pairs, "Group_Pairs")
@@ -4827,7 +4783,7 @@
             
             # Add traits info to tip data
             tip_data <- tip_data %>%
-              left_join(Datos_m_especie, by = c("label" = "Especie"))
+              left_join(Datos_m_Species, by = c("label" = "Species"))
             
             # Plot final tree
             ptree_final <- ptree +
@@ -4938,9 +4894,9 @@
   ######### ---------------------------------- #########
   ######### ---------------------------------- #########
 
-    # Just to say that even thouh this script has not been created thinking on
+    # Just to say that even though this script has not been created thinking on
     # replicability of it for other data, I hope some parts of it can work for
-    # in your study. 
+    # your study. 
             
     # Also, as the main objetive of this script is to keep track of all the steps
     # on this work to permit replicability, if anything of this script doesnt work
