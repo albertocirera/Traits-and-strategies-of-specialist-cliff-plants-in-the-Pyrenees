@@ -24,10 +24,10 @@
 
   
   
+
   
-  
-  
-  
+
+
 
 
   ######### ---------------------------- #########
@@ -56,7 +56,7 @@
         # Linear mixed models
           # Libraries
           # Procedure
-          # Figure 3: Linear mixed models
+          # Figure 2: Linear mixed models
         # Multivariate analysis
           # Ordenation plot
             # PCA
@@ -64,7 +64,7 @@
             # RDA
             # PERMANOVA
             # BETADISPER
-          # Figure 4: PCA
+          # Figure 3: PCA
       # 5. COMPLEMENTS
         # Maps
           # Libraries
@@ -73,7 +73,7 @@
         # Phylogenomic tree
           # Libraries
           # Procedure
-          # Figure 2: Phylogenomic tree
+          # Supplementary figure 1: Phylogenomic tree
       # 6. FINAL CONSIDERATIONS
   
   
@@ -99,13 +99,31 @@
     # In my case...
     setwd("C:/Users/cirer/Desktop/Trabajo/IPE/TFM/Traits-and-strategies-of-specialist-cliff-plants-in-the-Pyrenees")
 
+    # Install packages. Some manual instalations are needed for the script to work 
+    # properly, other than the normal CRAN installations.
+    
+      # # webshot
+      # install.packages("webshot")
+      # webshot::install_phantomjs()
+      # 
+      # # ggtree
+      # if (!require("BiocManager", quietly = TRUE))
+      #   install.packages("BiocManager")
+      # BiocManager::install("ggtree")
+      # 
+      # # V.PhyloMaker2
+      # if (!require("devtools", quietly = TRUE))
+      #   install.packages("devtools")
+      # library("devtools")
+      # devtools::install_github("jinyizju/V.PhyloMaker2")
+
+    
+
    
 
 
  
     
-
-
     ######## --------------------- ########
     ######## ----- Libraries ----- ########
     ######## --------------------- ########
@@ -265,7 +283,7 @@
         # Calculate relative flower area per individual
         Datos_m_individ$Relative_flower_area <- NA
         for (i in 1:nrow(Datos_m_individ)) {
-          Datos_m_individ$Relative_flower_area[i] <- (Datos_m_individ$Flower_area[i]/100) / Datos_m_individ$Plant_max_veg_height[i]
+          Datos_m_individ$Relative_flower_area[i] <- Datos_m_individ$Flower_area / Datos_m_individ$Plant_max_veg_height[i]
         }     
           
         
@@ -1522,7 +1540,7 @@
           correlation
           
           # Save it as an image
-          ggsave(filename = "Supplementary_Figure1_Correlation.png", 
+          ggsave(filename = "Supplementary_Figure2_Correlation.png", 
                  plot = correlation,
                  path = "Figures",
                  width = 16, 
@@ -1560,7 +1578,6 @@
         library(lme4)
         library(lmerTest) # Libreries for p-value
         library(pbkrtest) # Libreries for p-value
-        library(flexplot)
         library(car)
         library(emmeans)
         library(MuMIn) # for R2
@@ -1629,8 +1646,7 @@
           
             # Model comparison
             anova(Modelo_0, Modelo_1)
-            model.comparison(Modelo_0, Modelo_1)
-            
+
             # Anova of the best model
             anova(Modelo_1)
             
@@ -1668,8 +1684,7 @@
             
             # Model comparison
             anova(Modelo_log_0, Modelo_log_1)
-            model.comparison(Modelo_log_0, Modelo_log_1)
-            
+
             # Anova of the best model
             anova(Modelo_log_1)
             
@@ -1719,8 +1734,7 @@
           
           # Model comparison
           anova(Modelo_0, Modelo_1)
-          model.comparison(Modelo_0, Modelo_1)
-          
+
           # Anova of the best model
           anova(Modelo_1)
           
@@ -1758,8 +1772,7 @@
             
             # Model comparison
             anova(Modelo_log_0, Modelo_log_1)
-            model.comparison(Modelo_log_0, Modelo_log_1)
-            
+
             # Anova of the best model
             anova(Modelo_log_1)
             
@@ -1809,8 +1822,7 @@
             
             # Model comparison
             anova(Modelo_0, Modelo_1)
-            model.comparison(Modelo_0, Modelo_1)
-            
+
             # Anova of the best model
             anova(Modelo_1)
             
@@ -1848,8 +1860,7 @@
             
             # Model comparison
             anova(Modelo_log_0, Modelo_log_1)
-            model.comparison(Modelo_log_0, Modelo_log_1)
-            
+
             # Anova of the best model
             anova(Modelo_log_1)
             
@@ -1866,12 +1877,100 @@
             # Emmeans to compare
             emmeans(Modelo_log_1, ~Type, adjust="fdr")
             plot(emmeans(Modelo_log_1, ~Type), horizontal=F)  
-          
+         
             
             
             
             
-  
+         
+        ###### --------------------- ######
+        ###### -- Leaf_dry_weight -- ###### 
+        ###### --------------------- ######
+            
+          # First we do models with the data but if it is needed we transform it
+          # so the assumptions of the lmm are met
+            
+            
+            
+            
+            
+          ##### ---------------------------- #####
+          ##### -- Without transformation -- ##### 
+          ##### ---------------------------- #####
+            
+            # First with the raw data
+            
+            # Models
+            Modelo_0 <- lmer(Leaf_dry_weight ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_1 <- lmer(Leaf_dry_weight ~ Type + (1|Pairs/Species), data=Datos_m_individ)
+            
+            # Summary
+            summary(Modelo_0)
+            summary(Modelo_1)
+            
+            # Model comparison
+            anova(Modelo_0, Modelo_1)
+
+            # Anova of the best model
+            anova(Modelo_1)
+            
+            # Residuals to see how good is the model
+            qqPlot((resid(Modelo_1))) # Normality
+            plot(resid(Modelo_1)~fitted(Modelo_1)) # Variance homogeneity
+            hist((resid(Modelo_1))) # Normality with histogram (worse)
+            
+            # Calculate R2
+            # R2m is the marginal R2, by fixed effects, and R2c is the conditional,
+            # estimated by fixed and random effects, the R2 of the model. 
+            r.squaredGLMM(Modelo_1)
+            
+            # Emmeans to compare
+            emmeans(Modelo_1, ~Type, adjust="fdr")
+            plot(emmeans(Modelo_1, ~Type), horizontal=F)
+            
+            
+            
+            
+            
+          ##### -------------------------- #####
+          ##### -- With transformations -- ##### 
+          ##### -------------------------- #####
+            
+            # If a transformation is needed
+            
+            # Models
+            Modelo_log_0 <- lmer(log(Leaf_dry_weight) ~ 1 + (1|Pairs/Species), data=Datos_m_individ)
+            Modelo_log_1 <- lmer(log(Leaf_dry_weight) ~ Type + (1|Pairs/Species), data=Datos_m_individ)
+            
+            # Summaries
+            summary(Modelo_log_0)
+            summary(Modelo_log_1)
+            
+            # Model comparison
+            anova(Modelo_log_0, Modelo_log_1)
+
+            # Anova of the best model
+            anova(Modelo_log_1)
+            
+            # Residuals to see how good is the model
+            qqPlot((resid(Modelo_log_1))) # Normality
+            plot(resid(Modelo_log_1)~fitted(Modelo_log_1)) # Variance homogeneity
+            hist((resid(Modelo_log_1))) # Normality with histogram (worse)
+            
+            # Calculate R2
+            # R2m is the marginal R2, by fixed effects, and R2c is the conditional,
+            # estimated by fixed and random effects, the R2 of the model. 
+            r.squaredGLMM(Modelo_log_1)
+            
+            # Emmeans to compare
+            emmeans(Modelo_log_1, ~Type, adjust="fdr")
+            plot(emmeans(Modelo_log_1, ~Type), horizontal=F) 
+         
+         
+            
+            
+            
+            
         ###### ------------------------- ######
         ###### -- SLA_without_petiole -- ###### 
         ###### ------------------------- ######
@@ -1899,8 +1998,7 @@
             
             # Model comparison
             anova(Modelo_0, Modelo_1)
-            model.comparison(Modelo_0, Modelo_1)
-            
+
             # Anova of the best model
             anova(Modelo_1)
             
@@ -1938,8 +2036,7 @@
             
             # Model comparison
             anova(Modelo_log_0, Modelo_log_1)
-            model.comparison(Modelo_log_0, Modelo_log_1)
-            
+
             # Anova of the best model
             anova(Modelo_log_1)
             
@@ -1989,8 +2086,7 @@
             
             # Model comparison
             anova(Modelo_0, Modelo_1)
-            model.comparison(Modelo_0, Modelo_1)
-            
+
             # Anova of the best model
             anova(Modelo_1)
             
@@ -2028,8 +2124,7 @@
             
             # Model comparison
             anova(Modelo_log_0, Modelo_log_1)
-            model.comparison(Modelo_log_0, Modelo_log_1)
-            
+
             # Anova of the best model
             anova(Modelo_log_1)
             
@@ -2079,8 +2174,7 @@
             
             # Model comparison
             anova(Modelo_0, Modelo_1)
-            model.comparison(Modelo_0, Modelo_1)
-            
+
             # Anova of the best model
             anova(Modelo_1)
             
@@ -2118,8 +2212,7 @@
             
             # Model comparison
             anova(Modelo_log_0, Modelo_log_1)
-            model.comparison(Modelo_log_0, Modelo_log_1)
-            
+
             # Anova of the best model
             anova(Modelo_log_1)
             
@@ -2173,8 +2266,7 @@
             
             # Model comparison
             anova(Modelo_0, Modelo_1)
-            model.comparison(Modelo_0, Modelo_1)
-            
+
             # Anova of the best model
             anova(Modelo_1)
             
@@ -2214,9 +2306,7 @@
             
             # Model comparison
             anova(Modelo_log_0, Modelo_log_1, Modelo_log_2)
-            model.comparison(Modelo_log_0, Modelo_log_1)
-            model.comparison(Modelo_log_1, Modelo_log_2)
-            
+
             # Anova of the best model
             anova(Modelo_log_1)
             anova(Modelo_log_2)
@@ -2273,8 +2363,7 @@
             
             # Model comparison
             anova(Modelo_0, Modelo_1)
-            model.comparison(Modelo_0, Modelo_1)
-            
+
             # Anova of the best model
             anova(Modelo_1)
             
@@ -2312,8 +2401,7 @@
             
             # Model comparison
             anova(Modelo_log_0, Modelo_log_1)
-            model.comparison(Modelo_log_0, Modelo_log_1)
-            
+
             # Anova of the best model
             anova(Modelo_log_1)
             
@@ -2338,7 +2426,7 @@
             
                
       ####### --------------------------------------- #######
-      ####### -- Figure 1: Graphic with the models -- #######
+      ####### -- Figure 2: Graphic with the models -- #######
       ####### --------------------------------------- #######
       
         # The idea is to do a graph were I can summarize all the information of the
@@ -2804,7 +2892,7 @@
             print(final_plot)
             
             # Save it as an image
-            ggsave(filename = "Figure3_lmm.png", 
+            ggsave(filename = "Figure2_lmm.png", 
                    plot = final_plot,
                    path = "Figures",
                    width = 14, 
@@ -2953,7 +3041,7 @@
               
               
             #### ----------------------------- ####
-            #### -- Plot. Start of figure 4 -- ####
+            #### -- Plot. Start of figure 3 -- ####
             #### ----------------------------- ####  
             
               # Colour for the type of species
@@ -3110,7 +3198,7 @@
                 print(pca.plot.morf)
                 
                 # Save it as an image
-                ggsave(filename = "Figure4_PCA.png", 
+                ggsave(filename = "Figure3_PCA.png", 
                        plot = pca.plot.morf,
                        path = "Figures",
                        width = 16, 
@@ -3275,7 +3363,7 @@
             rownames(matrizmorf) <- Datos_m_Ord$Cod_ind
             
             # And adonis2 for the model
-            perm_model <- adonis2(Datos_m_Ord[ ,c(8, 11, 12, 18, 22, 30, 36, 37)] ~ Pairs * Type,
+            perm_model <- adonis2(Datos_m_Ord[ ,c(8, 11, 12, 18, 20, 27, 30, 31)] ~ Pairs * Type,
               data = Datos_m_Ord,
               method = "euclidean")
             
@@ -3377,7 +3465,7 @@
         ###### ----------------- ######
             
           # The idea is to do a Table with the information of the numerical models
-          # to introduce it after as part of Figure 4.
+          # to introduce it after as part of Figure 3.
           
             
             
@@ -3485,7 +3573,7 @@
               
                   
       ####### ------------------- #######
-      ####### -- Figure 4: PCA -- #######
+      ####### -- Figure 3: PCA -- #######
       ####### ------------------- #######
             
         # Insert image into plot
@@ -3500,7 +3588,7 @@
         print(p_with_table)
       
         # Save it as an image
-        ggsave(filename = "Figure4_PCA.png",
+        ggsave(filename = "Figure3_PCA.png",
                path = "Figures",
                plot = p_with_table, 
                width = 16, 
@@ -3532,7 +3620,7 @@
         
     # What I am doing here then is a map to show where I sampled the studied species
     # and some context of the area, and then a phylogenomic tree to check the relatedness
-    # of my species. They are actually Figures 1 and 2 in the manuscript.
+    # of my species. They are actually Figures 1 and Supplementary figure 1 in the manuscript.
         
      
         
@@ -4322,7 +4410,7 @@
   
         # First we make a template that we can use to make the tree, then we chose
         # the parameters for the tree, then we add our species to the tree, we make 
-        # the tree and at the end we plot it (Figure 2 in manuscript).
+        # the tree and at the end we plot it (Supplementary figure 1 in manuscript).
   
   
   
@@ -4811,7 +4899,7 @@
             ptree_final
             
             # Save it as an image
-            ggsave(filename = "Figure2_Tree.png",
+            ggsave(filename = "Supplementary_Figure1_Tree.png",
                    path = "Figures",
                    plot = ptree_final, 
                    width = 16, 
@@ -4872,7 +4960,7 @@
             ptree_final1
             
             # Save it as an image
-            ggsave(filename = "Figure2_Tree.png",
+            ggsave(filename = "Supplementary_Figure1_Tree.png",
                    path = "Figures",
                    plot = ptree_final1, 
                    width = 16, 
