@@ -283,7 +283,7 @@
         # Calculate relative flower area per individual
         Datos_m_individ$Relative_flower_area <- NA
         for (i in 1:nrow(Datos_m_individ)) {
-          Datos_m_individ$Relative_flower_area[i] <- Datos_m_individ$Flower_area / Datos_m_individ$Plant_max_veg_height[i]
+          Datos_m_individ$Relative_flower_area[i] <- Datos_m_individ$Flower_area[i] / Datos_m_individ$Plant_max_veg_height[i]
         }     
           
         
@@ -2854,9 +2854,9 @@
                     axis.text = element_text(size = 6.5),
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
-              geom_text(label = "**", x = 2.2, y = 0.45, size=4) +
-              annotate("text", label = "R2m = 0.09", x = 2.1, y = 2.9, size=2) +
-              annotate("text", label = "R2c = 0.97", x = 2.1, y = 2.65, size=2) 
+              geom_text(label = "**", x = 1.2, y = 80, size=4) +
+              annotate("text", label = "R2m = 0.09", x = 2.1, y = 286, size=2) +
+              annotate("text", label = "R2c = 0.97", x = 2.1, y = 266, size=2) 
             
             
             
