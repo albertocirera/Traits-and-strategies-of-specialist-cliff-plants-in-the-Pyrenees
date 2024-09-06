@@ -4,28 +4,43 @@
 ########## ------------------------------------------------------------- ##########
 ########## ------------------------------------------------------------- ##########
   
-  # This is the script for the study: "Specialist plants on vertical calcareous rock
-  # formations in the Pyrenees share common traits and strategies." All the script
-  # is detailed and explained, and should work as far as you have downloaded the folder
-  # from github "https://github.com/albertocirera/Traits-and-strategies-of-specialist-cliff-plants-in-the-Pyrenees" and you have access to internet. In fact, it
-  # should work just with the raw data csv, but you need some other files for the map
-  # part. Any doubt dont hesitate to ask to cireralberto@gmail.com
+  # This is the script for the study: "Specialist plants on vertical calcareous cliffs
+  # in the Pyrenees share common traits and strategies". All the script is detailed and 
+  # explained, and should work as far as you have downloaded the folder from github
+  # "https://github.com/albertocirera/Traits-and-strategies-of-specialist-cliff-plants-in-the-Pyrenees"
+  # and you have access to internet. In fact, it should work just with the raw data csv,
+  # but you need some other files for the map and the TRY parts. Any doubt dont 
+  # hesitate to ask to cireralberto@gmail.com.
+
+  # For a code line where you save a ggtable as an image, you need to have Google
+  # chrome installed in your computer
 
   # All the code can run in less than 5 minutes (and that is in my computer, which
   # is not potent at all and its quite slow)
 
+  # Install packages. Some manual instalations are needed for the script to work 
+  # properly, other than the normal CRAN installations.
   
-  # Mejorar alguna cosa de la figura de los lmm. El cliff_specialist, ver si quiero dejar esos nombres
-  # de variables o poner otros...
-
-  # En la figura del PCA igual puedo hacer algo mas pequeño los símbolos de type. Y se que es dificil pero si se pudiesen juntar mas...
-
-  # TODAS LAS FIGURAS 16CM DE ANCHURA (Menos la de lmm que igual tengo que tener mas cuidado con la altura. reducir un poco altura)  
+    # # webshot
+    # install.packages("webshot")
+    # webshot::install_phantomjs()
+    # install.packages("webshot2")
+    # 
+    # # ggtree
+    # if (!require("BiocManager", quietly = TRUE))
+    #   install.packages("BiocManager")
+    # BiocManager::install("ggtree")
+    # 
+    # # V.PhyloMaker2
+    # if (!require("devtools", quietly = TRUE))
+    #   install.packages("devtools")
+    # library("devtools")
+    # devtools::install_github("jinyizju/V.PhyloMaker2")
 
   
-  
 
-  
+
+
 
 
 
@@ -74,6 +89,10 @@
           # Libraries
           # Procedure
           # Supplementary figure 1: Phylogenomic tree
+        # TRY data
+          # Libraries
+          # Procedure
+          # Supplementary figure 2: TRY data
       # 6. FINAL CONSIDERATIONS
   
   
@@ -96,33 +115,16 @@
     # is completed and reordered. 
 
     # First of all really important to set working directory to the folder downloaded
+    # WHEN DOWNLOADED FROM GITHUB THE FOLDER'S NAME END WITH "-main". MAKE SURE TO ADD THAT
     # In my case...
     setwd("C:/Users/cirer/Desktop/Trabajo/IPE/TFM/Traits-and-strategies-of-specialist-cliff-plants-in-the-Pyrenees")
 
-    # Install packages. Some manual instalations are needed for the script to work 
-    # properly, other than the normal CRAN installations.
-    
-      # # webshot
-      # install.packages("webshot")
-      # webshot::install_phantomjs()
-      # 
-      # # ggtree
-      # if (!require("BiocManager", quietly = TRUE))
-      #   install.packages("BiocManager")
-      # BiocManager::install("ggtree")
-      # 
-      # # V.PhyloMaker2
-      # if (!require("devtools", quietly = TRUE))
-      #   install.packages("devtools")
-      # library("devtools")
-      # devtools::install_github("jinyizju/V.PhyloMaker2")
+
 
     
 
    
 
-
- 
     
     ######## --------------------- ########
     ######## ----- Libraries ----- ########
@@ -1540,7 +1542,7 @@
           correlation
           
           # Save it as an image
-          ggsave(filename = "Supplementary_Figure2_Correlation.png", 
+          ggsave(filename = "Supplementary_Figure3_Correlation.png", 
                  plot = correlation,
                  path = "Figures",
                  width = 16, 
@@ -2534,6 +2536,7 @@
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
               geom_text(label = "*", x = 2.1, y = 17, size=4) +
+              geom_text(label = "a)", x = 2.4, y = 32, size=4) +
               annotate("text", label = "R2m = 0.04", x = 0.9, y = 32, size=2) +
               annotate("text", label = "R2c = 0.97", x = 0.9, y = 29, size=2) 
 
@@ -2579,6 +2582,7 @@
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
               geom_text(label = "", x = 2.1, y = 1.1, size=4) +
+              geom_text(label = "b)", x = 0.6, y = 1.45, size=4) +
               annotate("text", label = "R2m = 0.02", x = 2.1, y = 1.45, size=2) +
               annotate("text", label = "R2c = 0.92", x = 2.1, y = 1.34, size=2) 
             
@@ -2624,6 +2628,7 @@
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
               geom_text(label = "", x = 2.1, y = 2, size=4) +
+              geom_text(label = "c)", x = 2.4, y = 2.8, size=4) +
               annotate("text", label = "R2m = 0.02", x = 0.9, y = 2.8, size=2) +
               annotate("text", label = "R2c = 0.97", x = 0.9, y = 2.6, size=2) 
           
@@ -2669,6 +2674,7 @@
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
               geom_text(label = ".", x = 2.15, y = 345, size=5) +
+              geom_text(label = "d)", x = 2.4, y = 430, size=4) +
               annotate("text", label = "R2m = 0.07", x = 0.9, y = 430, size=2) +
               annotate("text", label = "R2c = 0.86", x = 0.9, y = 400, size=2) 
             
@@ -2714,6 +2720,7 @@
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
               geom_text(label = "", x = 2.1, y = 0.5, size=4) +
+              geom_text(label = "e)", x = 2.4, y = 0.62, size=4) +
               annotate("text", label = "R2m = 0.02", x = 0.9, y = 0.62, size=2) +
               annotate("text", label = "R2c = 0.94", x = 0.9, y = 0.58, size=2) 
             
@@ -2761,6 +2768,7 @@
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
               geom_text(label = "**", x = 2.2, y = 70, size=4) +
+              geom_text(label = "f)", x = 2.4, y = 230, size=4) +
               annotate("text", label = "R2m = 0.21", x = 0.9, y = 230, size=2) +
               annotate("text", label = "R2c = 0.93", x = 0.9, y = 210, size=2) 
 
@@ -2808,6 +2816,7 @@
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
               geom_text(label = "", x = 2.1, y = 1000, size=4) +
+              geom_text(label = "g)", x = 2.4, y = 1300, size=4) +
               annotate("text", label = "R2m = 0.00", x = 0.9, y = 900, size=2) +
               annotate("text", label = "R2c = 0.98", x = 0.9, y = 780, size=2) 
             
@@ -2855,6 +2864,7 @@
                     axis.title = element_text(size = 9, face = "bold"),
                     plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
               geom_text(label = "**", x = 1.2, y = 80, size=4) +
+              geom_text(label = "h)", x = 0.6, y = 280, size=4) +
               annotate("text", label = "R2m = 0.09", x = 2.1, y = 286, size=2) +
               annotate("text", label = "R2c = 0.97", x = 2.1, y = 266, size=2) 
             
@@ -3616,11 +3626,15 @@
     # I name this section as complements because it is true that this are big parts
     # of the script that are not mandatory for the models and the data analysis. 
     # Anyways, both the phylogenomic tree and the map are important parts of the
-    # manuscript.
+    # manuscript. Also there is a plot with the amount of data available from the studied
+    # species in TRY database
         
     # What I am doing here then is a map to show where I sampled the studied species
     # and some context of the area, and then a phylogenomic tree to check the relatedness
     # of my species. They are actually Figures 1 and Supplementary figure 1 in the manuscript.
+        
+    # I am also doing a plot to show that there is almost no data available from TRY
+    # for the studied cliff specialist species. 
         
      
         
@@ -3834,37 +3848,37 @@
                   color = "black",
                   size = 1,
                   show.legend = FALSE) +
-                geom_sf(
-                  data = L_RIO_sf,
-                  color = "#00BFFF", 
-                  aes(alpha = 0.6),
-                  size = .1,
-                  show.legend = FALSE) +
-                geom_sf(
-                  data = AUTOVIA_sf,
-                  color = "grey50",
-                  aes(alpha = 0.6),
-                  size = 0.15,
-                  show.legend = FALSE) +
-                geom_sf(
-                  data = CARR_NAC_sf,
-                  color = "grey50", 
-                  aes(alpha = 0.6),
-                  size = 0.15,
-                  show.legend = FALSE) +
-                geom_sf(
-                  data = CARR_AUTON_sf,
-                  color = "grey50",
-                  aes(alpha = 0.6),
-                  size = 0.15,
-                  show.legend = FALSE) +
-                geom_sf(
-                  data = NUC_POB_sf,
-                  fill = "red",
-                  color = "red4", 
-                  aes(alpha = 0.6),
-                  size = 0.15,
-                  show.legend = FALSE) +
+                # geom_sf(
+                #   data = L_RIO_sf,
+                #   color = "#00BFFF", 
+                #   aes(alpha = 0.6),
+                #   size = .1,
+                #   show.legend = FALSE) +
+                # geom_sf(
+                #   data = AUTOVIA_sf,
+                #   color = "grey50",
+                #   aes(alpha = 0.6),
+                #   size = 0.15,
+                #   show.legend = FALSE) +
+                # geom_sf(
+                #   data = CARR_NAC_sf,
+                #   color = "grey50", 
+                #   aes(alpha = 0.6),
+                #   size = 0.15,
+                #   show.legend = FALSE) +
+                # geom_sf(
+                #   data = CARR_AUTON_sf,
+                #   color = "grey50",
+                #   aes(alpha = 0.6),
+                #   size = 0.15,
+                #   show.legend = FALSE) +
+                # geom_sf(
+                #   data = NUC_POB_sf,
+                #   fill = "red",
+                #   color = "red4", 
+                #   aes(alpha = 0.6),
+                #   size = 0.15,
+                #   show.legend = FALSE) +
                 geom_raster(
                   data = dem_huesca_df,
                   aes(x = x, y = y, fill = elevation, alpha = 0.6),
@@ -4967,15 +4981,208 @@
                    height = 16, 
                    units = "cm", 
                    dpi = 300)
-           
+          
+            
+            
+            
+    
+            
+            
+                    
+    ######## ------------------ ########
+    ######## ---- TRY DATA ---- ########
+    ######## ------------------ ########
+        
+      # Here a comparison is done between available trait data for our studied
+      # species in TRY database. For that, a table with traits available for
+      # each of our species is downloaded from TRY and ploted.
+        
+        
+        
+        
+        
+        
+        
+      ####### --------------------- #######
+      ####### ----- Libraries ----- #######
+      ####### --------------------- #######
+        
+        library(tidyverse)
+        library(ggplot2)
+        
+        
+        
+        
+        
+        
+        
+      ####### --------------------- #######
+      ####### ----- Procedure ----- #######
+      ####### --------------------- #######
+        
+        # First we need to load and transform the data, and then we can plot. We
+        # are plotting together the amount of data per species and the total amount
+        # of data for cliff plants and for generalist plants
+            
+            
+        
+            
+            
+            
+        ###### ---------------------------- ######
+        ###### ----- Prepare the data ----- ######
+        ###### ---------------------------- ######    
+                
+          # Load data
+          TRY <- read.table("TRY/TRY_data_TFM.txt", header = TRUE, sep = "\t")
+          
+          # We add each column to end up with the total amount of info per species
+          TRY_sum <- data.frame(Species = colnames(TRY[,3:24]), Total_Info = colSums(TRY[,3:24]))
+          
+          # Rename the species name to match with our data
+          TRY_sum$Species <- gsub("^\\.|\\.$", "", TRY_sum$Species)  # Delete first and final point
+          TRY_sum$Species <- gsub("\\.", " ", TRY_sum$Species)       # Substitude middle point per space
+          
+          # Bind it with Datos_m_Species and add missing species
+          TRY_completo <- merge(
+            TRY_sum, 
+            Datos_m_Species[, c(5, 2, 3)], 
+            by = "Species", 
+            all.y = TRUE
+          )
+          
+          # Replaze NA with 0, as there is 0 info about some species (they are not even in the TRY list)
+          TRY_completo$Total_Info[is.na(TRY_completo$Total_Info)] <- 0
+          
+          # Reorder species
+          TRY_completo <- TRY_completo[order(TRY_completo$Pairs, TRY_completo$Type), ]
+          
+          # Swith to factor
+          TRY_completo$Species <- factor(TRY_completo$Species, levels = unique(TRY_completo$Species))
+          
+          
+          
+          
+          
+          
+          
+      ####### -------------------------------------------- #######
+      ####### ----- Supplementary figure 2: TRY data ----- #######
+      ####### -------------------------------------------- ####### 
+          
+        # Define the colours
+        colores_grafico <- c("Cliff_specialist" = "#E69F00", "Generalist" = "#009E73")
+        
+          
+          
+        
+          
+            
+        ###### ---------------------------- ######
+        ###### ----- Species_TRY_plot ----- ######
+        ###### ---------------------------- ######
+          
+          # First plot
+          Species_TRY_plot <- ggplot(TRY_completo, aes(x = Species, y = Total_Info, fill = Type)) +
+            geom_bar(stat = "identity", position = "dodge") +
+            geom_text(aes(label = Total_Info), position = position_dodge(width = 1), vjust = -0.5, size = 3) +
+            labs(title = "Available data in TRY",
+                 x = "Species",
+                 y = "Amount of data") +
+            theme_classic() +
+            theme(
+              axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, color = colores_grafico, face = "italic"),
+              axis.text.y = element_text(size = 8),
+              axis.title = element_text(size = 10),
+              legend.position = "none",
+              panel.background = element_rect(fill = "white"),
+              plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+              plot.title = element_text(hjust = 0.5)
+            ) +
+            scale_fill_manual(values = colores_grafico, labels = c("Cliff plants", "Generalist plants"))
+          
+          # Visualize
+          print(Species_TRY_plot)
+        
+        
+          
+          
+          
+            
+        ###### -------------------------- ######
+        ###### ----- Total_TRY_plot ----- ######
+        ###### -------------------------- ######
+       
+          # Totals for cliff specialist and generalist plants
+          total_generalist <- sum(TRY_completo$Total_Info[TRY_completo$Type == "Generalist"])
+          total_cliff <- sum(TRY_completo$Total_Info[TRY_completo$Type == "Cliff_specialist"])
+          
+          # New dataframe for second plot
+          total_data <- data.frame(
+            Type = c("Cliff_specialist", "Generalist"),
+            Total_info = c(total_cliff, total_generalist)
+          )
+          
+          # Factor
+          total_data$Type <- factor(total_data$Type, levels = unique(total_data$Type))
+          
+          # Second plot
+          Total_TRY_plot <- ggplot(total_data, aes(x = Type, y = Total_info, fill = Type)) +
+            geom_bar(stat = "identity", width = 0.5) +
+            geom_text(aes(label = Total_info), position = position_dodge(width = 0.9), vjust = -0.5, size = 3) +
+            scale_fill_manual(values = colores_grafico) +
+            labs(title= "Total",
+                 y = "Amount of data",
+                 x = "Habitat" ) +
+            theme_classic() +
+            theme(
+              axis.text.x = element_text(color=colores_grafico),
+              axis.text.y = element_text(size = 8),
+              axis.title = element_text(size = 9),
+              panel.background = element_rect(fill = "white"),
+              plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+              plot.title = element_text(hjust = 0.5, size = 12)  
+            ) +
+            coord_cartesian(ylim = c(0, 24000)) +  
+            guides(fill = FALSE) +
+            scale_x_discrete(labels = c("Cliff plants", "Generalist plants")) 
+          
+          # Visualize
+          print(Total_TRY_plot)
+        
+        
+        
+        
+        
+        
+        ###### -------------------- ######
+        ###### ----- TRY_plot ----- ######
+        ###### -------------------- ######
+        
+          # Plot together
+          TRY_plot <- Species_TRY_plot +
+            annotation_custom(grob = ggplotGrob(Total_TRY_plot), xmin = 0.5, xmax = 13, ymin = 3000, ymax = 9000)
+          
+          # Visualize
+          print(TRY_plot)
+          
+          # Save it as an image
+          ggsave(filename = "Supplementary_Figure2_TRY.png",
+                 path = "Figures",
+                 plot = TRY_plot, 
+                 width = 16, 
+                 height = 16, 
+                 units = "cm", 
+                 dpi = 300)
+        
+        
+        
             
             
             
             
             
-            
-            
-             
+        
   ######### ---------------------------------- #########
   ######### ---------------------------------- #########
   #########         FINAL CONSIDERATIONS       ######### 
